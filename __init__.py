@@ -8,7 +8,7 @@ bl_info = {
     "version": (1, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Addon Reloader",
-    "description": "Easily reload addons without restarting Blender",
+    "description": "快速重新加载开发中的 Blender 插件。Quick Reloading of Development Blender Add-ons.",
     "warning": "",
     "doc_url": "",
     "category": "Development",

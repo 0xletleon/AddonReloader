@@ -2,9 +2,15 @@
 
 # 插件重载器 Addon Reloader
 
-    快速重新加载插件, 无需进入设置手动禁用在启用
-    适合开发调试Blender插件时是用
-    Easily reload addons without restarting Blender
+    快速重新加载开发中的 Blender 插件。
+
+    快速重新加载插件, 无需进入设置手动禁用在启用，
+    适合开发调试Blender插件时使用。
+
+    Quick Reloading of Development Blender Add-ons.
+
+    Quickly reload add-ons without manually disabling and enabling in settings,
+    suitable for developing and debugging Blender add-ons.
 
     代码由claude-3-5-sonnet生成
 
