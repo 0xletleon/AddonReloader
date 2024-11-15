@@ -6,7 +6,7 @@ bl_info = {
     "name": "Addon Reloader",
     "author": "letleon ,claude-3-5-sonnet",
     "version": (1, 0),
-    "blender": (4, 0, 0),
+    "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Addon Reloader",
     "description": "Easily reload addons without restarting Blender",
     "warning": "",

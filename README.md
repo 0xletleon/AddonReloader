@@ -1,3 +1,5 @@
+![logo.png](logo.png)
+
 # 插件重载器 Addon Reloader
 
     快速重新加载插件, 无需进入设置手动禁用在启用
