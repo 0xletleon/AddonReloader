@@ -5,7 +5,7 @@ import os
 bl_info = {
     "name": "Addon Reloader",
     "author": "letleon ,claude-3-5-sonnet",
-    "version": (1, 1),
+    "version": (1, 1, 1),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Addon Reloader",
     "description": "快速重新加载开发中的 Blender 插件。Quick Reloading of Development Blender Add-ons.",
@@ -17,9 +17,9 @@ bl_info = {
 # 存储插件列表的全局变量 Global variable to store the addon list
 addon_list = []
 
-class ADDONRELOADER_PT_panel(bpy.types.Panel):
+class AddonReloader(bpy.types.Panel):
     """定义插件的面板类 Define the panel class for the addon"""
-    bl_idname = "ADDONRELOADER_PT_panel"
+    bl_idname = "addon_reloader"
     bl_label = "Addon Reloader"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -50,7 +50,7 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
             try:
                 bpy.ops.preferences.addon_disable(module=addon_name)
                 bpy.ops.preferences.addon_enable(module=addon_name)
-                self.report({'INFO'}, f"Addon '{addon_name}'\nReloaded Successfully\n")
+                self.report({'INFO'}, f"Addon '{addon_name}'\nReloaded Successfully")
             except Exception as e:
                 self.report({'ERROR'}, f"Error reloading addon: {str(e)}")
         else:
@@ -94,14 +94,14 @@ def register():
         description="Select the addon to reload",
         items=get_addon_list
     )
-    bpy.utils.register_class(ADDONRELOADER_PT_panel)
+    bpy.utils.register_class(AddonReloader)
     bpy.utils.register_class(ADDONRELOADER_OT_reload_addon)
     bpy.utils.register_class(ADDONRELOADER_OT_refresh_list)
 
 def unregister():
     """注销插件的类和属性 Unregister the addon's classes and properties"""
     del bpy.types.Scene.addon_to_reload
-    bpy.utils.unregister_class(ADDONRELOADER_PT_panel)
+    bpy.utils.unregister_class(AddonReloader)
     bpy.utils.unregister_class(ADDONRELOADER_OT_reload_addon)
     bpy.utils.unregister_class(ADDONRELOADER_OT_refresh_list)
 

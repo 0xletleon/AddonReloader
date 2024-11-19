@@ -1,12 +1,13 @@
-schema_version = "1.1.0"
-id = "ADDONRELOADER_PT_panel"
-version = "1.1.0"
+schema_version = "1.0.0"
+id = "addon_reloader"
+version = "1.1.1"
 name = "Addon Reloader"
 tagline = "Quick Reloading of Development Blender Add-ons"
 maintainer = "letleon <letleon@163.com>"
 type = "add-on"
 website = "https://github.com/0xletleon/AddonReloader"
 blender_version_min = "4.2.0"
+tags = ["System", "Development"]
 license = [
   "SPDX:GPL-3.0-or-later",
 ]
@@ -18,5 +19,6 @@ paths_exclude_pattern = [
   "/*.bat",
   "/*.jpg",
   "/*.png",
-  "/.gitignore"
+  "/.gitignore",
+  "/*.md"
 ]
