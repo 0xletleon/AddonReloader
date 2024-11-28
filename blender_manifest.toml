@@ -1,16 +1,20 @@
 schema_version = "1.0.0"
 id = "addon_reloader"
-version = "1.1.1"
 name = "Addon Reloader"
-tagline = "Quick Reloading of Development Blender Add-ons"
+version = "1.2.0"
+tagline = "Fast reload of user add-on or extensions"
 maintainer = "letleon <letleon@163.com>"
 type = "add-on"
+
 website = "https://github.com/0xletleon/AddonReloader"
-blender_version_min = "4.2.0"
 tags = ["System", "Development"]
+
+blender_version_min = "4.2.0"
+
 license = [
   "SPDX:GPL-3.0-or-later",
 ]
+
 [build]
 paths_exclude_pattern = [
   "__pycache__/",
@@ -22,3 +26,6 @@ paths_exclude_pattern = [
   "/.gitignore",
   "/*.md"
 ]
+
+[permissions]
+files = "Read and traverse addon/extension directories"
