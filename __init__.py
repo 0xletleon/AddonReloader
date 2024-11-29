@@ -105,7 +105,7 @@ def get_addon_list(self, context):
     if not lists_initialized:
         update_addon_list()
 
-    wm = context.window_manager
+    wm = context.window_manager if context else bpy.context.window_manager
 
     # 确保至少返回一个默认选项 Make sure to return at least one default option
     default_option = [('NONE', 'No Items', '', 'PLUGIN', 0)]
@@ -124,13 +124,9 @@ def update_addon_list_mode(self, context):
     if not lists_initialized:
         update_addon_list()
 
-    current_list = {
-        'ADDONS': addon_list,
-        'EXTENSIONS': extension_list,
-        'ALL': all_items_list
-    }[self.addon_list_mode]
+    current_list = get_addon_list(None, context)
 
-    last_selected_item = last_selected[self.addon_list_mode]
+    last_selected_item = last_selected.get(self.addon_list_mode)
 
     if current_list:
         if last_selected_item and any(item[0] == last_selected_item for item in current_list):
@@ -273,19 +269,28 @@ def on_depsgraph_update_post(scene, depsgraph):
         check_addon_status()
     except Exception as e:
         logger.error(f"Error in on_depsgraph_update_post: {str(e)}")
+    finally:
+        # 确保 EnumProperty 被更新
+        bpy.context.window_manager.addon_to_reload = bpy.context.window_manager.addon_to_reload
 
 
 def check_addon_status():
     """检查并记录插件状态的变化 Check and log changes in addon status."""
-    global last_addons
+    global last_addons, lists_initialized
     current_addons = {addon.module for addon in bpy.context.preferences.addons}
 
     added_addons = current_addons - last_addons
     removed_addons = last_addons - current_addons
 
     if added_addons or removed_addons:
+        lists_initialized = False
         update_addon_list()
         last_addons = current_addons
+        
+        # 确保当前选择的项目仍然有效 Ensure that the currently selected item is still valid
+        wm = bpy.context.window_manager
+        if wm.addon_to_reload not in [item[0] for item in get_addon_list(None, bpy.context)]:
+            update_addon_list_mode(wm, bpy.context)
 
 
 def register():
@@ -307,6 +312,11 @@ def register():
         default='ADDONS',
         update=update_addon_list_mode
     )
+    
+    # 首先更新列表
+    update_addon_list()
+
+    # 然后注册 addon_to_reload 属性
     bpy.types.WindowManager.addon_to_reload = EnumProperty(
         name="",
         description="Select add-on or extensions to reload",
@@ -314,13 +324,16 @@ def register():
         update=update_addon_selection
     )
 
-    update_addon_list()
-    if addon_list:
-        bpy.context.window_manager.addon_to_reload = addon_list[0][0]
+    # 最后设置初始值
+    wm = bpy.context.window_manager
+    items = get_addon_list(None, bpy.context)
+    if items:
+        wm.addon_to_reload = items[0][0]
     else:
-        bpy.context.window_manager.addon_to_reload = 'NONE'
+        wm.addon_to_reload = 'NONE'
 
     bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
+    
 
 
 def unregister():
