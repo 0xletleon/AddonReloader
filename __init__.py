@@ -1,66 +1,48 @@
 import importlib
+import logging
 import os
 import sys
+from typing import List, Tuple, Dict
 
 import addon_utils
 import bpy
 from bpy.props import EnumProperty
 
-# 插件元数据 Addon metadata
-bl_info = {
-    "name": "Addon Reloader",
-    "author": "letleon, claude-3-5-sonnet",
-    "version": (1, 2, 0),
-    "blender": (4, 2, 0),
-    "location": "View3D > Sidebar > Reload",
-    "description": "Fast reload of user add-on or extensions.\n快速重新加载用户插件或扩展",
-    "category": "Development",
-    "doc_url": "https://github.com/0xletleon/AddonReloader",
-    "tracker_url": "https://github.com/0xletleon/AddonReloader/issues",
-}
+# 设置日志 logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# 全局变量 Global variables
-addon_list = []
-extension_list = []
-last_selected_addon = None
-last_selected_extension = None
-last_selected_all = None
-addon_list_loaded = False
+# 全局变量 global variable
+addon_list: List[Tuple[str, str, str, str, int]] = []
+extension_list: List[Tuple[str, str, str, str, int]] = []
+all_items_list: List[Tuple[str, str, str, str, int]] = []
+last_selected: Dict[str, str] = {'ADDONS': None, 'EXTENSIONS': None, 'ALL': None}
+lists_initialized: bool = False
+last_addons: set = set()
 
 
-def is_user_addon(module_name):
-    """
-    检查是否为用户插件
-    Check if it's a user addon in scripts/addons directory
-    """
+def is_user_addon(module_name: str) -> bool:
+    """检查是否为用户插件 Check if the module is a user addon."""
     addon_path = bpy.utils.user_resource('SCRIPTS', path="addons")
     return os.path.exists(os.path.join(addon_path, module_name))
 
 
-def get_extension_source(module_name):
-    """
-    获取扩展来源目录名
-    Get the source directory name of the extension
-    """
+def get_extension_source(module_name: str) -> str:
+    """获取扩展来源目录名 Get the source directory name of the extension."""
     base_path = bpy.utils.user_resource('CONFIG')
     extensions_root = os.path.join(os.path.dirname(base_path), "extensions")
 
-    # 只检查直接子目录
     if os.path.exists(extensions_root):
         for source_dir in os.listdir(extensions_root):
             source_path = os.path.join(extensions_root, source_dir)
-            if os.path.isdir(source_path):
-                if module_name in os.listdir(source_path):
-                    return source_dir
+            if os.path.isdir(source_path) and module_name in os.listdir(source_path):
+                return source_dir
     return ""
 
 
-def get_enabled_extensions():
-    """
-    获取所有已启用的扩展模块名称
-    Get all enabled extension module names
-    """
-    current_addon_id = "addon_reloader"
+def get_enabled_extensions() -> set:
+    """获取所有已启用的扩展模块名称 Get all enabled extension module names."""
+    current_addon_id = __name__
     return {
         mod.module.split('.')[-1]
         for mod in bpy.context.preferences.addons
@@ -69,126 +51,118 @@ def get_enabled_extensions():
 
 
 def update_addon_list():
-    """
-    更新可重新加载的项目列表
-    Update the list of reloadable items
-    """
-    global addon_list, extension_list, addon_list_loaded
-    if addon_list_loaded:
-        return
+    """更新可重新加载的项目列表 Update the list of items that can be reloaded."""
+    global addon_list, extension_list, all_items_list, lists_initialized
     addon_list.clear()
     extension_list.clear()
 
-    current_addon_id = "addon_reloader"
-    wm = bpy.context.window_manager
+    current_addon_id = __name__
     addon_counter = 1
     extension_counter = 1000
 
     # ADDONS
-    if wm.addon_list_mode in {'ADDONS', 'ALL'}:
-        user_addons_path = bpy.utils.user_resource('SCRIPTS', path="addons")
-        for addon in bpy.context.preferences.addons:
-            module_name = addon.module
-            if current_addon_id in module_name.lower():
-                continue
-            addon_path = os.path.join(user_addons_path, module_name)
-            module_path = os.path.join(user_addons_path, module_name + ".py")
-            if os.path.exists(addon_path) or os.path.exists(module_path):
-                display_name = f"{module_name}"
-                addon_list.append((module_name, display_name, "", 'PLUGIN', addon_counter))
-                addon_counter += 1
+    user_addons_path = bpy.utils.user_resource('SCRIPTS', path="addons")
+    for addon in bpy.context.preferences.addons:
+        module_name = addon.module
+        if current_addon_id in module_name.lower():
+            continue
+        addon_path = os.path.join(user_addons_path, module_name)
+        module_path = os.path.join(user_addons_path, module_name + ".py")
+        if os.path.exists(addon_path) or os.path.exists(module_path):
+            addon_list.append((module_name, module_name, "", 'PLUGIN', addon_counter))
+            addon_counter += 1
 
     # EXTENSIONS
-    if wm.addon_list_mode in {'EXTENSIONS', 'ALL'}:
-        base_path = bpy.utils.user_resource('CONFIG')
-        extensions_root = os.path.join(os.path.dirname(base_path), "extensions")
-        enabled_extensions = get_enabled_extensions()
+    base_path = bpy.utils.user_resource('CONFIG')
+    extensions_root = os.path.join(os.path.dirname(base_path), "extensions")
+    enabled_extensions = get_enabled_extensions()
 
-        if os.path.exists(extensions_root):
-            for repo_name in os.listdir(extensions_root):
-                repo_path = os.path.join(extensions_root, repo_name)
-                if os.path.isdir(repo_path) and repo_name not in ['.cache']:
-                    for ext_name in os.listdir(repo_path):
-                        if current_addon_id in ext_name.lower():
-                            continue
-                        ext_path = os.path.join(repo_path, ext_name)
-                        if os.path.isdir(ext_path) and ext_name != '.blender_ext' and ext_name in enabled_extensions:
-                            display_name = f"{ext_name}"
-                            extension_list.append((ext_name, display_name, "", 'LINKED', extension_counter))
-                            extension_counter += 1
+    if os.path.exists(extensions_root):
+        for repo_name in os.listdir(extensions_root):
+            repo_path = os.path.join(extensions_root, repo_name)
+            if os.path.isdir(repo_path) and repo_name not in ['.cache']:
+                for ext_name in os.listdir(repo_path):
+                    if current_addon_id in ext_name.lower():
+                        continue
+                    ext_path = os.path.join(repo_path, ext_name)
+                    if os.path.isdir(ext_path) and ext_name != '.blender_ext' and ext_name in enabled_extensions:
+                        extension_list.append((ext_name, ext_name, "", 'LINKED', extension_counter))
+                        extension_counter += 1
 
-    # set state
-    addon_list_loaded = True
+    # 如果列表为空，添加默认选项 Add default option if list is empty
+    if not addon_list:
+        addon_list.append(('NONE', 'No Add-ons', '', 'PLUGIN', 0))
+    if not extension_list:
+        extension_list.append(('NONE', 'No Extensions', '', 'LINKED', 0))
+
+    all_items_list = addon_list + extension_list
+    lists_initialized = True
 
 
 def get_addon_list(self, context):
-    """
-    获取列表用于EnumProperty
-    Get list for EnumProperty
-    """
+    """获取列表用于EnumProperty"""
+    global lists_initialized
+    if not lists_initialized:
+        update_addon_list()
+
     wm = context.window_manager
+
+    # 确保至少返回一个默认选项 Make sure to return at least one default option
+    default_option = [('NONE', 'No Items', '', 'PLUGIN', 0)]
+
     if wm.addon_list_mode == 'ADDONS':
-        return addon_list
+        return addon_list if addon_list else default_option
     elif wm.addon_list_mode == 'EXTENSIONS':
-        return extension_list
+        return extension_list if extension_list else default_option
     else:
-        return addon_list + extension_list
+        return all_items_list if all_items_list else default_option
 
 
 def update_addon_list_mode(self, context):
-    """
-    切换标签页时更新选择
-    Update selection when switching tabs
-    """
-    global last_selected_addon, last_selected_extension, last_selected_all
-    if not addon_list_loaded:
+    """切换标签页时更新选择"""
+    global last_selected
+    if not lists_initialized:
         update_addon_list()
 
-    if self.addon_list_mode == 'ADDONS':
-        current_list = addon_list
-        last_selected = last_selected_addon
-    elif self.addon_list_mode == 'EXTENSIONS':
-        current_list = extension_list
-        last_selected = last_selected_extension
-    else:  # ALL mode
-        current_list = addon_list + extension_list
-        last_selected = last_selected_all
+    current_list = {
+        'ADDONS': addon_list,
+        'EXTENSIONS': extension_list,
+        'ALL': all_items_list
+    }[self.addon_list_mode]
 
-    if last_selected and any(item[0] == last_selected for item in current_list):
-        context.window_manager.addon_to_reload = last_selected
-    elif current_list:
-        context.window_manager.addon_to_reload = current_list[0][0]
+    last_selected_item = last_selected[self.addon_list_mode]
+
+    if current_list:
+        if last_selected_item and any(item[0] == last_selected_item for item in current_list):
+            context.window_manager.addon_to_reload = last_selected_item
+        else:
+            context.window_manager.addon_to_reload = current_list[0][0]
+    else:
+        context.window_manager.addon_to_reload = 'NONE'
 
 
 def update_addon_selection(self, context):
-    """
-    当选择改变时更新状态
-    Update state when selection changes
-    """
-    global last_selected_addon, last_selected_extension, last_selected_all
-    selected = self.addon_to_reload
-    if not selected or selected == 'NONE':
-        return
-    if self.addon_list_mode == 'ADDONS':
-        last_selected_addon = selected
-    elif self.addon_list_mode == 'EXTENSIONS':
-        last_selected_extension = selected
-    else:  # ALL mode
-        last_selected_all = selected
+    """当选择改变时更新状态 Update the state when the selection changes."""
+    global last_selected
+    try:
+        selected = self.addon_to_reload
+        if selected and selected != 'NONE':
+            last_selected[self.addon_list_mode] = selected
+    except Exception as e:
+        logger.error(f"Error in update_addon_selection: {str(e)}")
+        self.addon_to_reload = 'NONE'
 
 
 class AddonReloader(bpy.types.Panel):
-    """
-    面板类定义
-    Panel class definition
-    """
-    bl_idname = "addon_reloader"
+    """面板类定义 Panel class definition."""
+    bl_idname = "ADDON_PT_reloader"
     bl_label = "Addon Reloader"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Reload'
 
     def draw(self, context):
+        """绘制面板 Draw the panel."""
         layout = self.layout
         wm = context.window_manager
         row = layout.row()
@@ -199,95 +173,129 @@ class AddonReloader(bpy.types.Panel):
         layout.operator("addonreloader.reload_addon", text="Reload")
 
 
+def is_addon_enabled(addon_name: str) -> bool:
+    """检查插件是否启用 Check if the addon is enabled"""
+    return addon_name in {addon.module for addon in bpy.context.preferences.addons}
+
+
+def is_extension_enabled(ext_name: str) -> bool:
+    """检查扩展是否启用 Check if the extension is enabled"""
+    ext_source = get_extension_source(ext_name)
+    if ext_source:
+        full_module_name = f"bl_ext.{ext_source}.{ext_name}"
+        return full_module_name in {addon.module for addon in bpy.context.preferences.addons}
+    return False
+
+
 class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
-    """
-    重新加载插件的操作类
-    Operator class for reloading addons
-    """
+    """重新加载插件的操作类 Operator class to reload the addon."""
     bl_idname = "addonreloader.reload_addon"
     bl_label = "Reload Addon"
     bl_description = "Disable and re-enable the selected add-on or extension"
 
-    def execute(self, context):
-        try:
-            addon_name = context.window_manager.addon_to_reload
-            if not addon_name:
-                self.report({'WARNING'}, "No item selected")
-                return {'CANCELLED'}
+    @classmethod
+    def poll(cls, context):
+        """判断操作是否可用 Determine if the operator is available."""
+        return context.window_manager.addon_to_reload not in {'', 'NONE'}
 
+    def execute(self, context):
+        addon_name = context.window_manager.addon_to_reload
+        try:
             if is_user_addon(addon_name):
+                if not is_addon_enabled(addon_name):
+                    self.report({'WARNING'}, f"Add-on [ {addon_name} ] is disabled. Please enable it first!")
+                    bpy.ops.addonreloader.refresh_list()
+                    return {'CANCELLED'}
                 self.reload_addon(addon_name)
             else:
+                if not is_extension_enabled(addon_name):
+                    self.report({'WARNING'}, f"Extension [ {addon_name} ] is disabled. Please enable it first!")
+                    bpy.ops.addonreloader.refresh_list()
+                    return {'CANCELLED'}
                 self.reload_extension(addon_name)
 
             self.report({'INFO'}, f"Reloaded Successfully [ {addon_name} ] √")
             return {'FINISHED'}
 
         except Exception as e:
+            logger.error(f"Error reloading {addon_name}: {str(e)}", exc_info=True)
             self.report({'ERROR'}, f"Error reloading {addon_name}: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
+            bpy.ops.addonreloader.refresh_list()
             return {'CANCELLED'}
 
-    def reload_addon(self, addon_name):
-        """
-        重新加载插件
-        Reload addon
-        """
+    def reload_addon(self, addon_name: str):
+        """重新加载插件 Reload the addon."""
         addon_utils.disable(addon_name, default_set=False)
         addon_utils.enable(addon_name, default_set=False, persistent=True)
 
-    def reload_extension(self, addon_name):
-        """
-        重新加载扩展及其所有子模块
-        Reload extension and all its submodules
-        """
+    def reload_extension(self, addon_name: str):
+        """重新加载扩展及其所有子模块 Reload the extension and all its submodules."""
         ext_source = get_extension_source(addon_name)
         ext_module = f"bl_ext.{ext_source}.{addon_name}"
-
-        # 禁用扩展 disable extension
         addon_utils.disable(ext_module, default_set=False)
-
-        # 重载所有模块 Reload all modules
         module = sys.modules.get(ext_module)
         if module:
             submodules = [name for name in sys.modules if name.startswith(f"{ext_module}.")]
-
-            # 重新加载所有子模块 Reload all sub modules
             importlib.reload(module)
             for submodule_name in submodules:
                 if submodule_name in sys.modules:
-                    # print(f"Reloading submodule: {submodule_name}")
                     importlib.reload(sys.modules[submodule_name])
 
-            # 重新加载主模块 reload main modules
-            # print(f"Reloading main module: {ext_module}")
             importlib.reload(module)
 
-        # 重新启用扩展 Enable extension
         addon_utils.enable(ext_module, default_set=False, persistent=True)
 
 
 class ADDONRELOADER_OT_refresh_list(bpy.types.Operator):
-    """
-    刷新列表的操作类
-    Operator class for refreshing the list
-    """
+    """刷新列表的操作类 Operator class to refresh the list."""
     bl_idname = "addonreloader.refresh_list"
     bl_label = "Refresh List"
     bl_description = "Refresh the list of items"
 
     def execute(self, context):
+        global lists_initialized
+        lists_initialized = False
         update_addon_list()
-        self.report({'INFO'}, "List refreshed √")
+        update_addon_list_mode(context.window_manager, context)
         return {'FINISHED'}
 
 
+classes = (
+    AddonReloader,
+    ADDONRELOADER_OT_reload_addon,
+    ADDONRELOADER_OT_refresh_list
+)
+
+
+def on_depsgraph_update_post(scene, depsgraph):
+    """在依赖图更新后检查插件状态 Check addon status after dependency graph update."""
+    try:
+        check_addon_status()
+    except Exception as e:
+        logger.error(f"Error in on_depsgraph_update_post: {str(e)}")
+
+
+def check_addon_status():
+    """检查并记录插件状态的变化 Check and log changes in addon status."""
+    global last_addons
+    current_addons = {addon.module for addon in bpy.context.preferences.addons}
+
+    added_addons = current_addons - last_addons
+    removed_addons = last_addons - current_addons
+
+    if added_addons or removed_addons:
+        update_addon_list()
+        last_addons = current_addons
+
+
 def register():
-    """
-    注册插件类和属性
-    Register addon classes and properties
-    """
+    for cls in classes:
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError:
+            pass
+        bpy.utils.register_class(cls)
+
     bpy.types.WindowManager.addon_list_mode = EnumProperty(
         name="List Mode",
         description="Select type",
@@ -296,10 +304,9 @@ def register():
             ('EXTENSIONS', 'Extensions', 'Show extensions'),
             ('ALL', 'All', 'Show all')
         ],
-        default='ALL',
+        default='ADDONS',
         update=update_addon_list_mode
     )
-
     bpy.types.WindowManager.addon_to_reload = EnumProperty(
         name="",
         description="Select add-on or extensions to reload",
@@ -307,24 +314,30 @@ def register():
         update=update_addon_selection
     )
 
-    bpy.utils.register_class(AddonReloader)
-    bpy.utils.register_class(ADDONRELOADER_OT_reload_addon)
-    bpy.utils.register_class(ADDONRELOADER_OT_refresh_list)
-
     update_addon_list()
+    if addon_list:
+        bpy.context.window_manager.addon_to_reload = addon_list[0][0]
+    else:
+        bpy.context.window_manager.addon_to_reload = 'NONE'
+
+    bpy.app.handlers.depsgraph_update_post.append(on_depsgraph_update_post)
 
 
 def unregister():
-    """
-    注销插件类和属性
-    Unregister addon classes and properties
-    """
-    del bpy.types.WindowManager.addon_to_reload
-    del bpy.types.WindowManager.addon_list_mode
+    if on_depsgraph_update_post in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(on_depsgraph_update_post)
 
-    bpy.utils.unregister_class(AddonReloader)
-    bpy.utils.unregister_class(ADDONRELOADER_OT_reload_addon)
-    bpy.utils.unregister_class(ADDONRELOADER_OT_refresh_list)
+    for cls in reversed(classes):
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError:
+            pass
+
+    try:
+        del bpy.types.WindowManager.addon_to_reload
+        del bpy.types.WindowManager.addon_list_mode
+    except AttributeError:
+        pass
 
 
 if __name__ == "__main__":
