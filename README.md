@@ -1,11 +1,12 @@
-![logo.png](logo.png)
+![logo.png](README/logo.png)
 
 # 插件重载器 Addon Reloader
 
-## English
+![pv.png](README/pv.png)
 
-## Note
-Addon Reloader was initiated by letleon and developed with the assistance of Kimi and Claude.
+![screen.png](README/screen.png)
+
+## English
 
 ## Overview
 Addon Reloader is a Blender add-on that allows users to Fast reload user add-ons or extensions without restarting Blender. This is particularly useful for developers who frequently make changes to their add-ons and need to see the changes in action immediately.
@@ -19,18 +20,21 @@ Addon Reloader is a Blender add-on that allows users to Fast reload user add-ons
 This add-on is compatible with Blender 4.2 and later versions.
 
 ## Usage
-After installation, you can access Addon Reloader in the View3D window's sidebar under the "Reload" category. Here's how to use it:
+After installation, you can find the “Reload” button in the top right corner of the Blender top bar.
 
-1. Switch to the View3D workspace.
-2. Open the sidebar panel by clicking on "Reload".
-3. Select the add-on or extension you want to reload from the list.
-4. Click the "Reload" button to reload the selected add-on or extension.
+## Note
+Only plugins and extensions under Blender's default repository directory are supported!
+
+Plugins and extensions under custom path directories are not supported!
+
+Plugins or extensions in non-custom paths are supported!
+![yes.png](README/yes.png)
+
+Plugins or extensions with custom paths are not supported!
+![no.png](README/no.png)
 
 
 ## 中文
-
-## Note
-Addon Reloader 由 letleon 发起，在Kimi和Claude的辅助下完成开发。
 
 ## 概述
 Addon Reloader 是一个 Blender 插件，允许用户快速重新加载用户插件或扩展，无需重启 Blender。这对于经常需要对插件进行更改并立即查看更改效果的开发者来说非常有用。
@@ -44,12 +48,15 @@ Addon Reloader 是一个 Blender 插件，允许用户快速重新加载用户�
 此插件兼容 Blender 4.2 及更高版本。
 
 ## 使用方法
-安装后，您可以在 View3D 窗口的侧边栏下的“Reload”类别中访问 Addon Reloader。以下是如何使用它：
+安装后，您可以在 Blender 顶部栏右上角找到 “Reload”” 按钮。
 
-1. 切换到 View3D 工作区。
-2. 点击“Reload”打开侧边栏面板。
-3. 从列表中选择要重新加载的插件或扩展。
-4. 点击“Reload”按钮重新加载所选的插件或扩展。
+## 注意事项
+只支持在Blender默认储存库目录下的插件和扩展！
 
-![pv.png](pv.png)
-![screen.png](screen.png)
+不支持自定义路径目录下的插件和扩展！
+
+支持非自定义路径的插件或扩展！
+![yes.png](README/yes.png)
+
+不支持自定义路径的插件或扩展！
+![no.png](README/no.png)
