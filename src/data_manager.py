@@ -39,8 +39,8 @@ class DataManager:
 
         # 下拉菜单默认值 - Default Value of Dropdown Menu
         self.dm_ddmenu_default_val = {
-            "ADDONS": [("def_opt", "None addon", "", "PLUGIN", 1)],
-            "EXTENSIONS": [("def_opt", "None exten", "", "LINKED", 1000)]
+            "ADDONS": [("def_opt", "None Add-ons", "", "PLUGIN", 1)],
+            "EXTENSIONS": [("def_opt", "None Extensions", "", "LINKED", 1000)]
         }
 
         # 上次的选择 - Last Selected
