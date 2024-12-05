@@ -38,7 +38,7 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                     # utils.refresh_addon_list(self, context)
                     return {'CANCELLED'}
                 # 重新加载扩展 - Reload Extension
-                self.reload_extension(context, addon_name)
+                self.reload_addon_and_extension(context, addon_name)
             else:  # 插件 - Addon
                 # 是否是启用状态 - Whether it is enabled status
                 if not utils.is_addon_enabled(addon_name):
@@ -47,7 +47,7 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                     # utils.refresh_addon_list(self, context)
                     return {'CANCELLED'}
                 # 重新加载插件 - Reload Addon
-                self.reload_addon(context, addon_name)
+                self.reload_addon_and_extension(context, addon_name)
 
             # 刷新插件列表
             # core.refresh_addon_list(self, context)
@@ -61,22 +61,8 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
             # utils.refresh_addon_list(self, context)
             return {'CANCELLED'}
 
-    def reload_addon(self, context, addon_name):
-        """重新加载插件 - Reload Addon"""
-        try:
-            log.debug(f"Reloading addon: {addon_name}")
-            # 禁用插件 - Disable addon
-            addon_utils.disable(addon_name)
-            # 启用插件 - Enable addon
-            addon_utils.enable(addon_name, default_set=True)
-        except Exception as e:
-            self.report({'ERROR'}, f"Error reloading addon {addon_name}: {str(e)}")
-            # 刷新列表 - Refresh list
-            # utils.refresh_addon_list(self, context)
-            return {'CANCELLED'}
-
-    def reload_extension(self, context, extend_name):
-        """重新加载扩展及其所有模块 - Reload Extension and all its modules"""
+    def reload_addon_and_extension(self, context, extend_name):
+        """重新加载插件或扩展及其所有模块 - Reload the plugin or extension and all its modules"""
         try:
             log.debug(f"Reloading extension: {extend_name}")
             # 禁用扩展 - Disable extension

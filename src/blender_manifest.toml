@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 id = "addon_reloader"
 name = "Addon Reloader"
-version = "1.4.0"
+version = "1.4.1"
 tagline = "Fast reload of user add-on or extensions"
 maintainer = "letleon <letleon@163.com>"
 type = "add-on"
