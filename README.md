@@ -24,17 +24,6 @@ This add-on is compatible with Blender 4.2 and later versions.
 ## Usage
 After installation, you can find the “Reload” button in the top right corner of the Blender top bar.
 
-## Note
-Only plugins and extensions under Blender's default repository directory are supported!
-
-Plugins and extensions under custom path directories are not supported!
-
-Plugins or extensions in non-custom paths are supported!
-![yes.png](README/yes.png)
-
-Plugins or extensions with custom paths are not supported!
-![no.png](README/no.png)
-
 
 ## 中文
 
@@ -51,14 +40,3 @@ Addon Reloader 是一个 Blender 插件，允许用户快速重新加载用户�
 
 ## 使用方法
 安装后，您可以在 Blender 顶部栏右上角找到 “Reload”” 按钮。
-
-## 注意事项
-只支持在Blender默认储存库目录下的插件和扩展！
-
-不支持自定义路径目录下的插件和扩展！
-
-支持非自定义路径的插件或扩展！
-![yes.png](README/yes.png)
-
-不支持自定义路径的插件或扩展！
-![no.png](README/no.png)
