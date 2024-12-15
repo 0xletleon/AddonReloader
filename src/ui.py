@@ -1,143 +1,82 @@
 # ui.py
-from typing import Tuple
-
-import addon_utils
 import bpy
+from typing import Tuple
+import addon_utils
 
 from .data_manager import dm
 from .log import log
-
-
-# ---- UI Panel ----#
-
-
-class ADDONRELOADER_PT_popover_panel(bpy.types.Panel):
-    """弹出面板类 - Popover Panel Class"""
-
-    bl_idname = "ADDONRELOADER_PT_popover_panel"
-    bl_label = "Addon Reloader"
-    bl_description = "Addon Reloader"
-    bl_space_type = "TOPBAR"
-    bl_region_type = "HEADER"
-
-    def draw(self, context) -> None:
-        """绘制弹出面板内容 - Draw the popover panel content"""
-        log.debug("绘制弹出面板内容 - Draw the popover panel content")
-
-        wm = context.window_manager
-        layout = self.layout
-
-        # 标签选择器 - Tab Selector
-        row = layout.row()
-        row.prop(wm, "addonreloader_addon_tabs", expand=True)
-
-        # 下拉菜单 - Dropdown Menu
-        row = layout.row(align=True)
-
-        # 当前选择的标签页和数据 - Current Tab and Data
-        current_tab = dm.dm_tabs_index
-        current_data = dm.dm_show_lists[current_tab]
-
-        # 判断当前标签页是否有数据 - Check if the current tab has data
-        if current_data and len(current_data) > 0:
-            log.debug("有数据，使用 addonreloader_ddmenu_list")
-
-            valid_values = {item[0] for item in current_data}
-            last_selected = dm.dm_last_selected[current_tab]
-            log.debug("last_selected: %s", last_selected)
-
-            # 设置下拉菜单的值 - Set the dropdown menu value
-            if last_selected in valid_values:
-                # 如果上次选中的值有效，保持选择 - Keep the last selected value
-                wm.addonreloader_ddmenu_list = last_selected
-            else:
-                # 如果上次选中的值无效，选择第一个选项 - Select the first option if the last selected value is invalid
-                wm.addonreloader_ddmenu_list = current_data[0][0]
-                # 更新最后选择的值 - Update the last selected value
-                dm.dm_last_selected[current_tab] = current_data[0][0]
-
-            # 使用动态列表 - Use the dynamic list
-            row.prop(wm, "addonreloader_ddmenu_list", text="")
-        else:  # 如果没有数据，使用默认选项 - Use the default option if there is no data
-            log.debug("列表中没有数据，使用默认选项")
-            # 确保选中的插件有效 - Ensure the selected addon is valid
-            wm.addonreloader_ddmenu_list = "def_opt"
-            # 使用默认列表 - Use the default list
-            row.prop(wm, "addonreloader_ddmenu_default_val", text="")
-
-        # 刷新按钮 - Refresh Button
-        row.operator("addonreloader.refresh_list", text="", icon="FILE_REFRESH")
-
-        # 新行 - New Row
-        row = layout.row()
-        # 状态设置图标 - Status Setting Icon
-        icon = "RADIOBUT_OFF" if not wm.addonreloader_addon_state else "RADIOBUT_ON"
-        # 状态设置 - Status Setting
-        row.prop(wm, "addonreloader_addon_state", text="", icon=icon)
-        # 重载按钮 - Reload Button
-        row.operator("addonreloader.reload_addon", text="Reload")
-
-
-# ---- Functions ----#
+from . import utils
 
 
 def draw_topbar_menu(self, context) -> None:
-    """绘制到顶部菜单栏 - Draw to the top menu bar"""
+    """绘制到顶部菜单栏"""
+    wm = context.window_manager
     layout = self.layout
+
+    # 添加分隔符使其靠右
     layout.separator_spacer()
-    layout.popover(panel="ADDONRELOADER_PT_popover_panel", text="Reload", icon="PLUGIN")
+    # 创建一行
+    row = layout.row(align=True)
+    # 添加下拉菜单
+    row.operator("addonreloader.dropdown_list", text="", icon="DOWNARROW_HLT")
+    # 刷新按钮
+    row.operator("addonreloader.refresh_list", text="", icon="FILE_REFRESH")
+
+    if dm.last_selected[0] != "no_addons":
+        # 状态设置图标
+        icon = "RADIOBUT_OFF" if not wm.addonreloader.addon_state else "RADIOBUT_ON"
+        # 状态设置
+        row.prop(wm.addonreloader, "addon_state", text="", icon=icon)
+        # 将插件名控制在20个字符以内
+        shortened_name = dm.last_selected[1][:20]
+        if len(dm.last_selected[1]) > 20:
+            shortened_name += "..."
+        # 重载按钮
+        row.operator("addonreloader.reload_addon", text=shortened_name)
+    else:
+        # log.debug("!no_addons %s ", dm.last_selected)
+        # 状态设置
+        row.prop(wm.addonreloader, "addon_state", text="", icon="RADIOBUT_OFF")
+        # 使用动态列表
+        row.operator("addonreloader.reload_addon", text=dm.last_selected[1])
+
+    # 打开插件目录按钮
+    row.operator("addonreloader.open_addon_folder", text="", icon="FILE_FOLDER")
 
 
-def update_tabs_index(self, context):
-    """更新插件标签索引 - Update addon tabs index"""
-    current_tab = self.addonreloader_addon_tabs
-    dm.dm_tabs_index = current_tab
-    log.debug("更新插件标签索引 current_tab: %s", current_tab)
+def update_toggle_addon_state(self, context):
+    """启用或禁用插件"""
+    log.debug("启用或禁用插件")
 
-
-def get_ddmenu_default_val(self, context):
-    """获取插件标签页默认值 - Get addon tabs default value"""
-    res = dm.dm_ddmenu_default_val[dm.dm_tabs_index]
-    log.debug("获取插件标签页默认值: %s", res)
-    return res
-
-
-def get_ddmenu_list(self, context) -> Tuple:
-    """获取下拉菜单列表 - Get the list for the dropdown menu"""
-    current_tab = dm.dm_tabs_index
-    this_list = dm.dm_show_lists[current_tab]
-
-    # 如果列表为空则返回默认值 - If the list is empty, return the default value
-    if not this_list:
-        log.debug("列表为空，返回默认值")
-        return dm.dm_ddmenu_default_val[current_tab]
-
-    return this_list
-
-
-def update_last_selected(self, context):
-    """更新插件标签页最后选中的选项 - Update the last selected option for the addon tabs"""
-    current_selected = self.addonreloader_ddmenu_list
-    dm.dm_last_selected[dm.dm_tabs_index] = current_selected
-    log.debug("Current Selected: %s", current_selected)
-
-
-def update_toggle_state(self, context):
-    """启用或禁用插件或扩展 - Enable or disable addon or extension"""
-    # 当前状态 - Current state
-    current_state = self.addonreloader_addon_state
+    # 当前状态
+    current_state = self.addon_state
     log.debug("now state: %s", current_state)
-
-    # 上次选择的插件或扩展 - The last selected addon or extension
-    last_selected = dm.dm_last_selected[dm.dm_tabs_index]
+    # 上次选择的插件或扩展
+    last_selected = dm.last_selected[0]
     log.debug("Last selected: %s", last_selected)
-    if last_selected == "def_opt":
+
+    # 如果没有选择插件则返回
+    if last_selected == "no_addons":
+        # 使用popup_menu显示警告
+        errortext = "Operation failed, please select a plugin"
+
+        def draw(self, context):
+            self.layout.label(text=errortext)
+
+        bpy.context.window_manager.popup_menu(draw, title="Warning", icon="ERROR")
+        log.error(errortext)
         return
 
-    # 切换插件或扩展的启用状态 - Toggle the enabled state of the addon or extension
-    if current_state:
-        addon_utils.enable(last_selected, default_set=True)
-        log.debug("Enabling addon: %s", last_selected)
-    else:
-        addon_utils.disable(last_selected, default_set=True)
-        log.debug("Disabling addon: %s", last_selected)
+    # 切换插件的启用状态
+    try:
+        # 获取插件当前状态
+        now_addon_state = utils.is_addon_enabled(last_selected)
+        if current_state and not now_addon_state:
+            addon_utils.enable(last_selected, default_set=True)
+            log.info("Enabling addon: %s", last_selected)
+        elif not current_state and now_addon_state:
+            addon_utils.disable(last_selected, default_set=True)
+            log.info("Disabling addon: %s", last_selected)
+
+    except Exception as e:
+        log.error("Error toggling addon state: %s ", str(e))

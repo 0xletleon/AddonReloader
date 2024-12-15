@@ -2,8 +2,8 @@ schema_version = "1.0.0"
 
 id = "addon_reloader"
 name = "Addon Reloader"
-version = "1.5.0"
-tagline = "Fast reload of user add-on or extensions"
+version = "1.5.1"
+tagline = "Fast reload of user add-ons"
 maintainer = "letleon <letleon@163.com>"
 type = "add-on"
 copyright = ["2024 letleon"]
@@ -18,7 +18,7 @@ license = [
 ]
 
 [permissions]
-files = "Read and traverse addon/extension directories"
+files = "Used to open the selected plugin folder"
 
 [build]
 paths_exclude_pattern = [

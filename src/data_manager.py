@@ -2,7 +2,7 @@
 
 
 def singleton(cls):
-    """单例模式 - Singleton Pattern"""
+    """单例模式"""
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -15,31 +15,24 @@ def singleton(cls):
 
 @singleton
 class DataManager:
-    """数据管理器 - Data Manager"""
+    """数据管理器"""
 
     def __init__(self):
-        # ---- AUX DATA ----#
+        # Addon Reloader的模块名
+        self.my_addon_names = {"Addon": "", "Extend": ""}
 
-        # Addon Reloader的模块名 - Module Name of Addon Reloader
-        self.dm_my_module_name = {"Addon": "", "Extend": ""}
+        # 下拉菜单默认值
+        self.ddmenu_default_val = [("no_addons", "No Add-ons", "", "PLUGIN", 1)]
 
-        # ---- TAB AND LISTS ----#
+        # 上次的选择
+        self.last_selected = self.ddmenu_default_val[0]
 
-        # 标签索引 - Tabs Index
-        self.dm_tabs_index = "ADDONS"
+        # 要显示的插件列表
+        self.show_lists = []
 
-        # 下拉菜单默认值 - Default Value of Dropdown Menu
-        self.dm_ddmenu_default_val = {
-            "ADDONS": [("def_opt", "None Add-ons", "", "PLUGIN", 1)],
-            "EXTENSIONS": [("def_opt", "None Extensions", "", "LINKED", 1000)],
-        }
-
-        # 上次的选择 - Last Selected
-        self.dm_last_selected = {"ADDONS": "def_opt", "EXTENSIONS": "def_opt"}
-
-        # 要显示的插件和扩展列表 - Lists of Addons and Extensions to Show
-        self.dm_show_lists = {"ADDONS": [], "EXTENSIONS": []}
+        # 插件路径列表
+        self.addons_paths = {}
 
 
 dm = DataManager()
-"""数据管理器单例 - DataManager"""
+"""数据管理器单例"""
