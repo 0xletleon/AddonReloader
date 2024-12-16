@@ -1,11 +1,10 @@
 # ui.py
-import bpy
-from typing import Tuple
 import addon_utils
+import bpy
 
+from . import utils
 from .data_manager import dm
 from .log import log
-from . import utils
 
 
 def draw_topbar_menu(self, context) -> None:

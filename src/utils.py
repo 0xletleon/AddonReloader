@@ -1,6 +1,7 @@
 # utils.py
 import os
 import subprocess
+
 import addon_utils
 import bpy
 
@@ -51,18 +52,29 @@ def refresh_addon_list() -> None:
         module_name = addon.__name__
         # 模块路径
         module_file = addon.__file__
+        module_dict = addon.__dict__
+
+        log.debug("m_dict: %s", addon.__dict__.get("bl_info", "None x"))
+
+        log.debug("m_dict: %s", module_dict)
+        log.debug("addon: %s", addon)
         # 模块信息
-        this_bl_info = addon_utils.module_bl_info(addon)
+        # this_bl_info = addon_utils.module_bl_info(addon)
+        this_bl_info = addon.__dict__.get("bl_info", {})
+        bl_addon_version = this_bl_info.get("version", "0.0.0")
         bl_addon_name = this_bl_info.get("name", "Unknown Name")
-        bl_addon_description = this_bl_info.get(
+        bl_addon_description = f"Version: {bl_addon_version} \n"
+        bl_addon_description += this_bl_info.get(
             "description", "No description available"
         )
+
         log.debug(
-            "模块名称: %s 模块路径: %s 插件名称: %s 插件描述: %s",
+            "模块名称: %s 模块路径: %s 插件名称: %s 插件描述: %s 插件版本: %s",
             module_name,
             module_file,
             bl_addon_name,
             bl_addon_description,
+            bl_addon_version,
         )
 
         # # 排除未启用 - Exclude disabled
@@ -90,9 +102,9 @@ def refresh_addon_list() -> None:
 
             # 排除系统扩展
             if (
-                len(module_name_split) > 1
-                and module_name_split[0] == "bl_ext"
-                and module_name_split[1] == "system"
+                    len(module_name_split) > 1
+                    and module_name_split[0] == "bl_ext"
+                    and module_name_split[1] == "system"
             ):
                 log.debug("%s 是系统扩展", module_name)
                 continue
@@ -172,10 +184,10 @@ def check_blender_ready():
     log.debug("检查 Blender 是否已完全初始化")
     # 检查 Blender 是否已完全初始化
     if (
-        bpy.context
-        and bpy.context.scene
-        and bpy.context.view_layer
-        and bpy.data.objects
+            bpy.context
+            and bpy.context.scene
+            and bpy.context.view_layer
+            and bpy.data.objects
     ):
         log.debug("Blender is ready")
         # Blender 已就绪 刷新插件列表
