@@ -13,7 +13,7 @@ from .log import log
 class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
     bl_idname = "addonreloader.reload_addon"
     bl_label = "Reload Addon"
-    bl_description = "Reload the currently selected addon"
+    bl_description = "Reload the selected addon"
 
     @classmethod
     def poll(cls, context):
