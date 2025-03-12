@@ -6,7 +6,7 @@
 
 ![screen.png](README/screen.png)
 
-https://github.com/user-attachments/assets/0abe7510-304f-4379-957e-159af0fd46b5
+https://github.com/user-attachments/assets/b567e151-fc97-4f8d-8baa-28e1b026ad8b
 
 ## English
 
