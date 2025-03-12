@@ -1,6 +1,6 @@
 ![logo.png](README/logo.png)
 
-# 插件重载器 Addon Reloader
+# Addon Reloader - Blender插件重载工具
 
 ![pv.png](README/pv.png)
 

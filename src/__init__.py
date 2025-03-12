@@ -10,16 +10,16 @@ class AddonReloaderPropertyGroup(bpy.types.PropertyGroup):
         name="Addon status",
         description="Click to enable/disable addon",
         default=False,
-        update=ui.update_toggle_addon_state,
         options={"SKIP_SAVE"},
     )
 
 
 classes = (
     operators.ADDONRELOADER_OT_reload_addon,
-    operators.ADDONRELOADER_OT_refresh_list,
     operators.ADDONRELOADER_OT_dropdown_list,
+    operators.ADDONRELOADER_OT_refresh_list,
     operators.ADDONRELOADER_OT_open_addon_folder,
+    operators.ADDONRELOADER_OT_enable_or_disable_addon,
     AddonReloaderPropertyGroup,
 )
 

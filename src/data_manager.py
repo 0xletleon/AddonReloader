@@ -22,7 +22,7 @@ class DataManager:
         self.my_addon_names = {"Addon": "", "Extend": ""}
 
         # 下拉菜单默认值
-        self.ddmenu_default_val = [("no_addons", "No Add-ons", "", "PLUGIN", 1)]
+        self.ddmenu_default_val = [("no_addons", "No Add-ons", "", "FILE_SCRIPT", 1)]
 
         # 上次的选择
         self.last_selected = self.ddmenu_default_val[0]
