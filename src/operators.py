@@ -182,7 +182,26 @@ class ADDONRELOADER_OT_dropdown_list(bpy.types.Operator):
         return {"FINISHED"}
 
     def invoke(self, context, event):
+        # 先执行刷新列表操作
+        log.debug("Auto refreshing addon list before showing dropdown")
+        # 刷新插件列表
+        utils.refresh_addon_list()
+        
+        # 保存当前鼠标位置
+        current_mouse_x = event.mouse_x
+        current_mouse_y = event.mouse_y
+        
+        # 修改鼠标位置（向左和向下偏移）
+        offset_x = -50  # 向左偏移
+        offset_y = -30  # 向下偏移
+        context.window.cursor_warp(current_mouse_x + offset_x, current_mouse_y + offset_y)
+        
+        # 调用原始的搜索弹出窗口
         context.window_manager.invoke_search_popup(self)
+        
+        # 操作完成后将鼠标位置恢复
+        context.window.cursor_warp(current_mouse_x, current_mouse_y)
+        
         return {"FINISHED"}
 
 

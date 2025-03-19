@@ -1,6 +1,8 @@
 # ui.py
+import bpy
 from .data_manager import dm
-
+from .log import log
+from . import utils  # 添加对 utils 模块的导入
 
 def draw_topbar_menu(self, context) -> None:
     """绘制到顶部菜单栏"""
@@ -13,8 +15,6 @@ def draw_topbar_menu(self, context) -> None:
     row = layout.row(align=True)
     # 添加下拉菜单
     row.operator("addonreloader.dropdown_list", text="", icon="DOWNARROW_HLT")
-    # 刷新按钮
-    row.operator("addonreloader.refresh_list", text="", icon="FILE_REFRESH")
 
     if dm.last_selected[0] != "no_addons":
         # 状态设置图标
