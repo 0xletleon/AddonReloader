@@ -1,7 +1,8 @@
 # operators.py
 import importlib
-import sys
+import importlib.util
 import os
+import traceback  # 替换直接导入 sys
 
 import addon_utils
 import bpy
@@ -64,8 +65,8 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                 return False
 
             # 保存插件路径
-            # addon_path = os.path.dirname(addon_module.__file__)
-            # log.debug("Addon path: %s", addon_path)
+            addon_path = os.path.dirname(addon_module.__file__)
+            log.debug("Addon path: %s", addon_path)
 
             # 先尝试完全卸载插件
             log.debug("Remove addon: %s", addon_name)
@@ -90,23 +91,52 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                 except Exception as e:
                     log.error("Addon logout failed: %s", str(e))
 
-            # 清除模块缓存
-            related_modules = [
-                m
-                for m in sys.modules.keys()
-                if m == addon_name or m.startswith(addon_name + ".")
-            ]
-
-            log.debug("Related Modules: %s", len(related_modules))
-
-            # 从后向前删除模块（先删除子模块）
-            for m in sorted(related_modules, reverse=True):
-                if m in sys.modules:
-                    log.debug("Delete module cache: %s", m)
-                    del sys.modules[m]
-
-            # 重新导入主模块
+            # 使用纯 importlib 方式重新加载模块
+            # 首先清除 importlib 缓存
             importlib.invalidate_caches()
+            
+            # 记录需要重新加载的模块
+            modules_to_reload = []
+            
+            # 查找主模块和所有子模块
+            for root, dirs, files in os.walk(addon_path):
+                for file in files:
+                    if file.endswith('.py'):
+                        # 计算相对路径
+                        rel_path = os.path.relpath(os.path.join(root, file), addon_path)
+                        # 将路径转换为模块名
+                        if file == '__init__.py':
+                            if root == addon_path:
+                                # 主模块
+                                module_name = addon_name
+                            else:
+                                # 子包
+                                sub_path = os.path.relpath(root, addon_path)
+                                module_name = f"{addon_name}.{sub_path.replace(os.sep, '.')}"
+                        else:
+                            # 普通模块
+                            module_path = rel_path.replace(os.sep, '.').replace('.py', '')
+                            module_name = f"{addon_name}.{module_path}"
+                        
+                        modules_to_reload.append(module_name)
+            
+            log.debug("Found modules to reload: %s", len(modules_to_reload))
+            
+            # 重新导入主模块和所有子模块
+            for module_name in sorted(modules_to_reload):
+                try:
+                    spec = importlib.util.find_spec(module_name)
+                    if spec:
+                        log.debug("Reloading module: %s", module_name)
+                        if module_name == addon_name:
+                            # 主模块特殊处理
+                            main_module = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(main_module)
+                        else:
+                            # 子模块
+                            importlib.import_module(module_name)
+                except Exception as e:
+                    log.debug("Error reloading module %s: %s", module_name, str(e))
 
             # 重新启用插件
             try:
@@ -114,8 +144,6 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                 addon_utils.enable(addon_name, default_set=True)
             except Exception as e:
                 log.error("Failed to enable plugin: %s, Err: %s", addon_name, str(e))
-                import traceback
-
                 log.error(traceback.format_exc())
                 # 尝试使用备用方法启用
                 try:
@@ -131,17 +159,10 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                     self.report({"ERROR"}, f"Failed to reload addon {addon_name}")
                     return False
 
-            # 刷新UI
-            # for window in context.window_manager.windows:
-            #     for area in window.screen.areas:
-            #         area.tag_redraw()
-
             return True
 
         except Exception as e:
             log.error("Failed to reload addon: %s, Err: %s", addon_name, str(e))
-            import traceback
-
             log.error(traceback.format_exc())
             self.report({"ERROR"}, f"Error reloading addon {addon_name}: {str(e)}")
             return False
