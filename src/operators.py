@@ -2,6 +2,7 @@
 import importlib
 import importlib.util
 import os
+import sys
 import traceback  # 替换直接导入 sys
 
 import addon_utils
@@ -122,19 +123,33 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
             
             log.debug("Found modules to reload: %s", len(modules_to_reload))
             
+            # 从sys.modules中移除所有相关模块
+            for key in list(sys.modules.keys()):
+                if key == addon_name or key.startswith(f"{addon_name}."):
+                    log.debug("Removing module from sys.modules: %s", key)
+                    del sys.modules[key]
+            
             # 重新导入主模块和所有子模块
             for module_name in sorted(modules_to_reload):
                 try:
                     spec = importlib.util.find_spec(module_name)
                     if spec:
                         log.debug("Reloading module: %s", module_name)
+                        # 检查模块文件是否已更改
+                        module_file = spec.origin
+                        log.debug("Module file: %s", module_file)
                         if module_name == addon_name:
                             # 主模块特殊处理
                             main_module = importlib.util.module_from_spec(spec)
+                            sys.modules[module_name] = main_module
                             spec.loader.exec_module(main_module)
+                            log.debug("Main module reloaded: %s", module_name)
                         else:
                             # 子模块
-                            importlib.import_module(module_name)
+                            module = importlib.util.module_from_spec(spec)
+                            sys.modules[module_name] = module
+                            spec.loader.exec_module(module)
+                            log.debug("Submodule reloaded: %s", module_name)
                 except Exception as e:
                     log.debug("Error reloading module %s: %s", module_name, str(e))
 
@@ -150,6 +165,7 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                     spec = importlib.util.find_spec(addon_name)
                     if spec:
                         module = importlib.util.module_from_spec(spec)
+                        sys.modules[module_name] = module  # 确保模块被正确放入sys.modules
                         spec.loader.exec_module(module)
                         if hasattr(module, "register"):
                             module.register()
