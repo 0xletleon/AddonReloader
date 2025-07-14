@@ -126,7 +126,7 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
             # 从sys.modules中移除所有相关模块
             for key in list(sys.modules.keys()):
                 if key == addon_name or key.startswith(f"{addon_name}."):
-                    log.debug("Removing module from sys.modules: %s", key)
+                    # log.debug("Removing module from sys.modules: %s", key)
                     del sys.modules[key]
             
             # 重新导入主模块和所有子模块
@@ -194,7 +194,7 @@ class ADDONRELOADER_OT_dropdown_list(bpy.types.Operator):
         items = dm.show_lists
         return items if items else dm.ddmenu_default_val
 
-    enum_items: bpy.props.EnumProperty(items=get_items)
+    enum_items: bpy.props.EnumProperty(items=get_items) # type: ignore
 
     def find_last_selected(self, idname: str) -> str:
         """根据idname查找插件"""

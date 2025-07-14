@@ -11,7 +11,7 @@ class AddonReloaderPropertyGroup(bpy.types.PropertyGroup):
         description="Click to enable/disable addon",
         default=False,
         options={"SKIP_SAVE"},
-    )
+    ) # type: ignore
 
 
 classes = (
