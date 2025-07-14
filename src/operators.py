@@ -134,22 +134,22 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                 try:
                     spec = importlib.util.find_spec(module_name)
                     if spec:
-                        log.debug("Reloading module: %s", module_name)
+                        # log.debug("Reloading module: %s", module_name)
                         # 检查模块文件是否已更改
-                        module_file = spec.origin
-                        log.debug("Module file: %s", module_file)
+                        # module_file = spec.origin
+                        # log.debug("Module file: %s", module_file)
                         if module_name == addon_name:
                             # 主模块特殊处理
                             main_module = importlib.util.module_from_spec(spec)
                             sys.modules[module_name] = main_module
                             spec.loader.exec_module(main_module)
-                            log.debug("Main module reloaded: %s", module_name)
+                            # log.debug("Main module reloaded: %s", module_name)
                         else:
                             # 子模块
                             module = importlib.util.module_from_spec(spec)
                             sys.modules[module_name] = module
                             spec.loader.exec_module(module)
-                            log.debug("Submodule reloaded: %s", module_name)
+                            # log.debug("Submodule reloaded: %s", module_name)
                 except Exception as e:
                     log.debug("Error reloading module %s: %s", module_name, str(e))
 
