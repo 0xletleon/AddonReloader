@@ -1,3 +1,3 @@
 @echo off
-"D:\Apps\Blender\4.4.3\blender.exe" --command extension build
+"D:\Apps\Blender\4.5.0\blender.exe" --command extension build
 pause

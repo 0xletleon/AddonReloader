@@ -135,7 +135,10 @@ def refresh_addon_list() -> None:
         # 如果上次的选择为默认或本次列表中没有上次的选择时 更新选择
         if not last_in_list or dm.last_selected[0] == "no_addons":
             dm.last_selected = addons_list[0]
-            log.debug("Last time, the selection was not updated in the list: %s", dm.last_selected[1])
+            log.debug(
+                "Last time, the selection was not updated in the list: %s",
+                dm.last_selected[1],
+            )
             # 更新插件状态
             now_addon_state = is_addon_enabled(addons_list[0][0])
             addon_state = bpy.context.window_manager.addonreloader.addon_state

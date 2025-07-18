@@ -95,40 +95,44 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
             # 使用纯 importlib 方式重新加载模块
             # 首先清除 importlib 缓存
             importlib.invalidate_caches()
-            
+
             # 记录需要重新加载的模块
             modules_to_reload = []
-            
+
             # 查找主模块和所有子模块
             for root, dirs, files in os.walk(addon_path):
                 for file in files:
-                    if file.endswith('.py'):
+                    if file.endswith(".py"):
                         # 计算相对路径
                         rel_path = os.path.relpath(os.path.join(root, file), addon_path)
                         # 将路径转换为模块名
-                        if file == '__init__.py':
+                        if file == "__init__.py":
                             if root == addon_path:
                                 # 主模块
                                 module_name = addon_name
                             else:
                                 # 子包
                                 sub_path = os.path.relpath(root, addon_path)
-                                module_name = f"{addon_name}.{sub_path.replace(os.sep, '.')}"
+                                module_name = (
+                                    f"{addon_name}.{sub_path.replace(os.sep, '.')}"
+                                )
                         else:
                             # 普通模块
-                            module_path = rel_path.replace(os.sep, '.').replace('.py', '')
+                            module_path = rel_path.replace(os.sep, ".").replace(
+                                ".py", ""
+                            )
                             module_name = f"{addon_name}.{module_path}"
-                        
+
                         modules_to_reload.append(module_name)
-            
+
             log.debug("Found modules to reload: %s", len(modules_to_reload))
-            
+
             # 从sys.modules中移除所有相关模块
             for key in list(sys.modules.keys()):
                 if key == addon_name or key.startswith(f"{addon_name}."):
                     # log.debug("Removing module from sys.modules: %s", key)
                     del sys.modules[key]
-            
+
             # 重新导入主模块和所有子模块
             for module_name in sorted(modules_to_reload):
                 try:
@@ -165,11 +169,15 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                     spec = importlib.util.find_spec(addon_name)
                     if spec:
                         module = importlib.util.module_from_spec(spec)
-                        sys.modules[module_name] = module  # 确保模块被正确放入sys.modules
+                        sys.modules[module_name] = (
+                            module  # 确保模块被正确放入sys.modules
+                        )
                         spec.loader.exec_module(module)
                         if hasattr(module, "register"):
                             module.register()
-                            log.debug("Successfully enabled plugin using alternative methods")
+                            log.debug(
+                                "Successfully enabled plugin using alternative methods"
+                            )
                 except Exception as e2:
                     log.error("Err: %s", str(e2))
                     self.report({"ERROR"}, f"Failed to reload addon {addon_name}")
@@ -194,7 +202,7 @@ class ADDONRELOADER_OT_dropdown_list(bpy.types.Operator):
         items = dm.show_lists
         return items if items else dm.ddmenu_default_val
 
-    enum_items: bpy.props.EnumProperty(items=get_items) # type: ignore
+    enum_items: bpy.props.EnumProperty(items=get_items)  # type: ignore
 
     def find_last_selected(self, idname: str) -> str:
         """根据idname查找插件"""
@@ -223,22 +231,24 @@ class ADDONRELOADER_OT_dropdown_list(bpy.types.Operator):
         log.debug("Auto refreshing addon list before showing dropdown")
         # 刷新插件列表
         utils.refresh_addon_list()
-        
+
         # 保存当前鼠标位置
         current_mouse_x = event.mouse_x
         current_mouse_y = event.mouse_y
-        
+
         # 修改鼠标位置（向左和向下偏移）
         offset_x = -50  # 向左偏移
         offset_y = -30  # 向下偏移
-        context.window.cursor_warp(current_mouse_x + offset_x, current_mouse_y + offset_y)
-        
+        context.window.cursor_warp(
+            current_mouse_x + offset_x, current_mouse_y + offset_y
+        )
+
         # 调用原始的搜索弹出窗口
         context.window_manager.invoke_search_popup(self)
-        
+
         # 操作完成后将鼠标位置恢复
         context.window.cursor_warp(current_mouse_x, current_mouse_y)
-        
+
         return {"FINISHED"}
 
 
@@ -321,12 +331,16 @@ class ADDONRELOADER_OT_enable_or_disable_addon(bpy.types.Operator):
                 enabled = addon_utils.enable(last_selected[0], default_set=True)
                 if enabled is not None:
                     log.info("Addon [%s] started successfully!", last_selected[1])
-                    self.report({"INFO"}, f"Addon [{last_selected[1]}] started successfully!")
+                    self.report(
+                        {"INFO"}, f"Addon [{last_selected[1]}] started successfully!"
+                    )
                     context.window_manager.addonreloader.addon_state = True
                     return {"FINISHED"}
                 else:
                     log.info("Addon [%s] start failed!", last_selected[1])
-                    self.report({"WARNING"}, f"Addon [{last_selected[1]}] start failed!")
+                    self.report(
+                        {"WARNING"}, f"Addon [{last_selected[1]}] start failed!"
+                    )
                     # 修改按钮状态
                     context.window_manager.addonreloader.addon_state = False
                     return {"CANCELLED"}
@@ -334,12 +348,16 @@ class ADDONRELOADER_OT_enable_or_disable_addon(bpy.types.Operator):
                 disabled = addon_utils.disable(last_selected[0], default_set=True)
                 if disabled is None:
                     log.info("Addon [%s] disabled successfully!", last_selected[1])
-                    self.report({"INFO"}, f"Addon [{last_selected[1]}] disabled successfully!")
+                    self.report(
+                        {"INFO"}, f"Addon [{last_selected[1]}] disabled successfully!"
+                    )
                     context.window_manager.addonreloader.addon_state = False
                     return {"FINISHED"}
                 else:
                     log.info("Addon [%s] disabled failed!", last_selected[1])
-                    self.report({"ERROR"}, f"Addon [{last_selected[1]}] disabled failed!")
+                    self.report(
+                        {"ERROR"}, f"Addon [{last_selected[1]}] disabled failed!"
+                    )
                     context.window_manager.addonreloader.addon_state = True
                     return {"CANCELLED"}
 
