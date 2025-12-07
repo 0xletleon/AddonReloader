@@ -6,12 +6,11 @@
 
 ![screen.png](README/screen.png)
 
-https://github.com/user-attachments/assets/b567e151-fc97-4f8d-8baa-28e1b026ad8b
 
 ## English
 
 ## Overview
-Addon Reloader is a Blender add-on that allows users to Fast reload user add-ons or extensions without restarting Blender. This is particularly useful for developers who frequently make changes to their add-ons and need to see the changes in action immediately.
+Addon Reloader is a Blender add-on that allows users to quickly reload user add-ons or extensions without restarting Blender. This is particularly useful for developers who frequently make changes to their add-ons and need to see the changes in action immediately.
 
 ## Features
 - Fast reload user add-ons or extensions.
@@ -22,7 +21,8 @@ Addon Reloader is a Blender add-on that allows users to Fast reload user add-ons
 This add-on is compatible with Blender 4.2 and later versions.
 
 ## Usage
-After installation, you can find the “Reload” button in the top right corner of the Blender top bar.
+After installation, you can find the "Reload" button in the top right corner of the Blender top bar.
+
 
 
 ## 中文
@@ -39,4 +39,4 @@ Addon Reloader 是一个 Blender 插件，允许用户快速重新加载用户�
 此插件兼容 Blender 4.2 及更高版本。
 
 ## 使用方法
-安装后，您可以在 Blender 顶部栏右上角找到 “Reload”” 按钮。
+安装后，您可以在 Blender 顶部栏右上角找到 "Reload" 按钮。

@@ -2,7 +2,7 @@
 
 
 def singleton(cls):
-    """单例模式"""
+    """单例模式装饰器"""
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -15,24 +15,25 @@ def singleton(cls):
 
 @singleton
 class DataManager:
-    """数据管理器"""
+    """插件数据管理器"""
 
     def __init__(self):
-        # Addon Reloader的模块名
+        # 当前插件的模块名称
         self.my_addon_names = {"Addon": "", "Extend": ""}
 
         # 下拉菜单默认值
-        self.ddmenu_default_val = [("no_addons", "No Addons", "", "FILE_SCRIPT", 1)]
+        self.ddmenu_default_val = [
+            ("no_addons", "None", "", "FILE_SCRIPT", 1)]
 
-        # 上次的选择
+        # 上次选择的插件
         self.last_selected = self.ddmenu_default_val[0]
 
         # 要显示的插件列表
         self.show_lists = []
 
-        # 插件路径列表
+        # 插件路径映射表
         self.addons_paths = {}
 
 
 dm = DataManager()
-"""数据管理器单例"""
+"""数据管理器单例实例"""

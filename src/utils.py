@@ -1,7 +1,4 @@
 # utils.py
-import os
-import subprocess
-
 import addon_utils
 import bpy
 
@@ -10,7 +7,7 @@ from .log import log
 
 
 def get_my_module_names(package_name):
-    """获取自己的模块名"""
+    """获取当前插件的模块名称"""
     try:
         log.debug("Get the module name of this addon:%s", package_name)
         # 如果是扩展
@@ -31,7 +28,7 @@ def is_addon_enabled(addon_name: str) -> bool:
 
 def refresh_addon_list() -> None:
     """刷新插件列表"""
-    log.debug("Refresh addon list")
+    log.debug("Refresh List")
 
     # 插件列表
     addons_list = []
@@ -39,10 +36,10 @@ def refresh_addon_list() -> None:
     # 获取所有插件
     all_addons = addon_utils.modules()
 
-    # 本插件名称(Addon Reloader)
+    # 当前插件名称(Addon Reloader)
     my_module = dm.my_addon_names
 
-    # 插件列表中是否存在上次的选择
+    # 检查上次选择的插件是否仍在列表中
     last_in_list = False
 
     for addon in all_addons:
@@ -55,7 +52,12 @@ def refresh_addon_list() -> None:
         this_bl_info = addon.__dict__.get("bl_info", {})
         bl_addon_version = this_bl_info.get("version", "0.0.0")
         bl_addon_name = this_bl_info.get("name", "Unknown Name")
-        bl_addon_description = f"Version: {bl_addon_version} \n"
+
+        # 检查插件是否启用
+        is_enabled = is_addon_enabled(module_name)
+        enabled_status = " [Enabled]" if is_enabled else " [Disabled]"
+
+        bl_addon_description = f"Version: {bl_addon_version}{enabled_status}\n"
         bl_addon_description += this_bl_info.get(
             "description", "No description available"
         )
@@ -74,11 +76,11 @@ def refresh_addon_list() -> None:
             # 排除自己(Addon Reloader)
             if my_module["Extend"]:
                 if module_name == my_module["Extend"]:
-                    log.debug("Exclude this extension")
+                    log.debug("Exclude this extension (Addon Reloader)")
                     continue
             else:
                 if module_name_split[-1] == my_module["Addon"]:
-                    log.debug("Exclude this addon")
+                    log.debug("Exclude this addon (Addon Reloader)")
                     continue
 
             # 排除系统扩展
@@ -90,16 +92,16 @@ def refresh_addon_list() -> None:
                 # log.debug("[%s] system extension", module_name)
                 continue
 
-            # 添加到扩展列表
-            addons_list.append(
-                (
-                    module_name,
-                    bl_addon_name,
-                    bl_addon_description,
-                    "PLUGIN",
-                    len(addons_list),
-                )
+            # 添加到扩展列表（无论是否启用）
+            addon_entry = (
+                module_name,
+                bl_addon_name,
+                bl_addon_description,
+                "PLUGIN",
+                len(addons_list),
             )
+            addons_list.append(addon_entry)
+
             # 添加到插件路径列表
             dm.addons_paths[module_name] = module_file
         else:  # 插件
@@ -112,16 +114,16 @@ def refresh_addon_list() -> None:
                 # log.debug("[%s] system addon", module_name)
                 continue
 
-            # 添加到插件列表
-            addons_list.append(
-                (
-                    module_name,
-                    bl_addon_name,
-                    bl_addon_description,
-                    "FILE_SCRIPT",
-                    len(addons_list),
-                )
+            # 添加到插件列表（无论是否启用）
+            addon_entry = (
+                module_name,
+                bl_addon_name,
+                bl_addon_description,
+                "FILE_SCRIPT",
+                len(addons_list),
             )
+            addons_list.append(addon_entry)
+
             # 添加到插件路径列表
             dm.addons_paths[module_name] = module_file
 
@@ -136,47 +138,45 @@ def refresh_addon_list() -> None:
         if not last_in_list or dm.last_selected[0] == "no_addons":
             dm.last_selected = addons_list[0]
             log.debug(
-                "Last time, the selection was not updated in the list: %s",
+                "No addon/extension selected, updating to: %s",
                 dm.last_selected[1],
             )
             # 更新插件状态
             now_addon_state = is_addon_enabled(addons_list[0][0])
             addon_state = bpy.context.window_manager.addonreloader.addon_state
             log.debug(
-                "now_addon_state: %s addon_state: %s", now_addon_state, addon_state
+                f"Now State: {now_addon_state} | Addon State: {addon_state}"
             )
             if addon_state != now_addon_state:
-                log.debug("addon_state != now_addon_state")
+                log.debug("Addon State != Now State")
                 bpy.context.window_manager.addonreloader.addon_state = now_addon_state
 
-    log.info("Addons list refreshed")
+    log.info("Re-refresh List")
 
 
 def check_blender_ready():
     """检查 Blender 是否已完全初始化，并在初始化后刷新插件列表"""
-    # 检查 Blender 是否已完全初始化
-    if (
-        bpy.context
-        and bpy.context.scene
-        and bpy.context.view_layer
-        and bpy.data.objects
-    ):
-        log.debug("Blender is ready")
-        # Blender 已就绪 刷新插件列表
-        refresh_addon_list()
+    try:
+        # 检查 Blender 是否已完全初始化
+        # 更可靠的检查方法
+        if (
+            bpy.context and
+            hasattr(bpy.context, 'window_manager') and
+            bpy.context.window_manager and
+            hasattr(bpy.context, 'scene') and
+            bpy.context.scene
+        ):
+            log.debug("Blender Ready")
+            # Blender 已就绪 刷新插件列表
+            refresh_addon_list()
 
-        # 停止定时器
-        return None
-
-    log.debug("Blender is not ready yet")
-    # 继续检查
-    return 0.1
-
-
-def open_addon_folder(path):
-    """打开插件文件夹"""
-    # 检查操作系统类型
-    if os.name == "nt":  # Windows
-        os.startfile(path)
-    elif os.name == "posix":  # macOS or Linux
-        subprocess.call(("open", path))
+            # 停止定时器
+            return None
+        else:
+            log.debug("Blender is not ready yet")
+            # 继续检查
+            return 0.5  # 增加间隔时间以减少日志输出
+    except Exception as e:
+        log.debug("Error checking Blender readiness: %s", str(e))
+        # 如果出现异常，稍后再检查
+        return 0.5
