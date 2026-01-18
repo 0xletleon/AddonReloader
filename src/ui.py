@@ -24,7 +24,7 @@ def draw_topbar_menu(self, context) -> None:
         if dm.last_selected[0] != "no_addons":  # 如果有选择的插件
             # 根据插件启用状态设置图标
             is_enabled = wm.addonreloader.addon_state
-            icon = "COLORSET_03_VEC" if is_enabled else "COLORSET_13_VEC"
+            icon = "COLORSET_03_VEC" if is_enabled else "COLORSET_02_VEC"
 
             # 添加启用/禁用按钮
             row.operator("addonreloader.enable_or_disable_addon",
@@ -39,7 +39,7 @@ def draw_topbar_menu(self, context) -> None:
         else:  # 如果没有选择的插件
             # 禁用状态的按钮
             row.operator(
-                "addonreloader.enable_or_disable_addon", text="", icon="COLORSET_13_VEC"
+                "addonreloader.enable_or_disable_addon", text="", icon="COLORSET_02_VEC"
             )
             # 添加重载按钮（无选择时显示默认文本）
             row.operator("addonreloader.reload_addon",

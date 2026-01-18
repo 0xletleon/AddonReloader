@@ -23,7 +23,7 @@ class DataManager:
 
         # 下拉菜单默认值
         self.ddmenu_default_val = [
-            ("no_addons", "None", "", "FILE_SCRIPT", 1)]
+            ("no_addons", "None", "", "COLORSET_02_VEC", 1)]
 
         # 上次选择的插件
         self.last_selected = self.ddmenu_default_val[0]

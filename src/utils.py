@@ -56,6 +56,7 @@ def refresh_addon_list() -> None:
         # 检查插件是否启用
         is_enabled = is_addon_enabled(module_name)
         enabled_status = " [Enabled]" if is_enabled else " [Disabled]"
+        state_icon = "COLORSET_03_VEC" if is_enabled else "COLORSET_02_VEC"
 
         bl_addon_description = f"Version: {bl_addon_version}{enabled_status}\n"
         bl_addon_description += this_bl_info.get(
@@ -95,9 +96,9 @@ def refresh_addon_list() -> None:
             # 添加到扩展列表（无论是否启用）
             addon_entry = (
                 module_name,
-                bl_addon_name,
+                f"[E] {bl_addon_name}",
                 bl_addon_description,
-                "PLUGIN",
+                state_icon,
                 len(addons_list),
             )
             addons_list.append(addon_entry)
@@ -117,9 +118,9 @@ def refresh_addon_list() -> None:
             # 添加到插件列表（无论是否启用）
             addon_entry = (
                 module_name,
-                bl_addon_name,
+                f"[A] {bl_addon_name}",
                 bl_addon_description,
-                "FILE_SCRIPT",
+                state_icon,
                 len(addons_list),
             )
             addons_list.append(addon_entry)
