@@ -1,6 +1,7 @@
 # operators.py
 import importlib
 import os
+import subprocess
 import sys
 import traceback
 from typing import List, Optional, Set, Tuple
@@ -30,6 +31,12 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
         log.info("开始重载: %s", target_item[1])
 
         try:
+            my_addon = dm.my_addon_names.get("Addon")
+            my_extend = dm.my_addon_names.get("Extend")
+            if target_item[0] in {my_addon, my_extend}:
+                self.report({"WARNING"}, "Cannot reload Addon Reloader itself")
+                return {"CANCELLED"}
+
             # 检查插件/扩展是否启用
             was_enabled = utils.is_addon_enabled(target_item[0])
 
@@ -38,6 +45,8 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                 context, target_item[0], was_enabled)
 
             if success:
+                utils.refresh_addon_list(force=True)
+                utils.sync_addon_state(context)
                 self.report(
                     {"INFO"}, f"[ {target_item[1]} ] Reloaded!")
                 return {"FINISHED"}
@@ -53,19 +62,20 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
 
     def _reload_modules(self, context: bpy.types.Context, module_name: str, was_enabled: bool) -> bool:
         """重新加载插件/扩展及其所有相关模块"""
-        log.debug("正在重载模块: %s", module_name)
+        root_module_name = module_name
+        log.debug("正在重载模块: %s", root_module_name)
 
         try:
             # 获取模块
             target_module = None
             for mod in addon_utils.modules():
-                if mod.__name__ == module_name:
+                if mod.__name__ == root_module_name:
                     target_module = mod
                     break
 
             # 如果未找到模块，记录错误并返回False
             if not target_module:
-                log.error("未找到模块: %s", module_name)
+                log.error("未找到模块: %s", root_module_name)
                 return False
 
             # 保存模块路径
@@ -73,10 +83,10 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
             log.debug("模块路径: %s", module_path)
 
             # 完全卸载模块，就像Blender卸载时一样
-            log.debug("正在完全移除模块: %s", module_name)
+            log.debug("正在完全移除模块: %s", root_module_name)
 
             # 确保模块被完全禁用
-            addon_utils.disable(module_name)
+            addon_utils.disable(root_module_name)
 
             # 手动注销所有已注册的类
             if hasattr(target_module, "classes"):
@@ -98,12 +108,12 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
             # 从sys.modules中完全移除所有相关模块
             modules_to_remove: List[str] = [
                 name for name in sys.modules
-                if name == module_name or name.startswith(f"{module_name}.")
+                if name == root_module_name or name.startswith(f"{root_module_name}.")
             ]
 
-            for module_name in modules_to_remove:
-                log.debug("从sys.modules移除模块: %s", module_name)
-                del sys.modules[module_name]
+            for name in modules_to_remove:
+                log.debug("从sys.modules移除模块: %s", name)
+                del sys.modules[name]
 
             # 清除importlib缓存
             importlib.invalidate_caches()
@@ -112,7 +122,7 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
             if was_enabled:
                 try:
                     # 使用addon_utils重新启用模块，就像Blender安装时一样
-                    result = addon_utils.enable(module_name, default_set=True)
+                    result = addon_utils.enable(root_module_name, default_set=True)
                     if result is not None:
                         log.debug("模块重新启用成功")
                         return True
@@ -121,19 +131,19 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                     return False
 
                 except Exception as e:
-                    log.error("启用模块失败: %s, 错误: %s", module_name, str(e))
+                    log.error("启用模块失败: %s, 错误: %s", root_module_name, str(e))
                     log.error(traceback.format_exc())
                     self.report(
-                        {"ERROR"}, f"Failed to reload module {module_name}")
+                        {"ERROR"}, f"Failed to reload module {root_module_name}")
                     return False
 
             return True
 
         except Exception as e:
-            log.error("模块重载失败: %s, 错误: %s", module_name, str(e))
+            log.error("模块重载失败: %s, 错误: %s", root_module_name, str(e))
             log.error(traceback.format_exc())
             self.report(
-                {"ERROR"}, f"Error reloading module {module_name}: {str(e)}")
+                {"ERROR"}, f"Error reloading module {root_module_name}: {str(e)}")
             return False
 
 
@@ -160,9 +170,8 @@ class ADDONRELOADER_OT_dropdown_list(bpy.types.Operator):
 
     def execute(self, context: bpy.types.Context) -> Set[str]:
         """执行插件/扩展选择操作"""
-        # 如果没有可选择的项，则直接返回
-        if not dm.show_lists or dm.show_lists == "no_addons":
-            return {"FINISHED"}
+        if not dm.show_lists:
+            return {"CANCELLED"}
 
         log.info("选择 %s", self.enum_items)
 
@@ -170,9 +179,7 @@ class ADDONRELOADER_OT_dropdown_list(bpy.types.Operator):
         last_selected = self._find_selected_item(self.enum_items)
         if last_selected:
             dm.last_selected = last_selected
-            # 更新项状态
-            now_item_state = utils.is_addon_enabled(last_selected[0])
-            context.window_manager.addonreloader.addon_state = now_item_state
+            utils.sync_addon_state(context)
 
         return {"FINISHED"}
 
@@ -180,7 +187,7 @@ class ADDONRELOADER_OT_dropdown_list(bpy.types.Operator):
         """调用插件/扩展选择下拉列表"""
         # 显示下拉列表前先刷新列表
         log.debug("显示下拉列表前自动刷新")
-        utils.refresh_addon_list()
+        utils.refresh_addon_list(force=True)
 
         # 保存当前鼠标位置
         current_mouse_x = event.mouse_x
@@ -210,7 +217,7 @@ class ADDONRELOADER_OT_refresh_list(bpy.types.Operator):
     def execute(self, context: bpy.types.Context) -> Set[str]:
         """执行列表刷新操作"""
         log.debug("执行列表刷新")
-        refreshed = utils.refresh_addon_list()
+        refreshed = utils.refresh_addon_list(force=True)
         log.debug("刷新结果: %s", refreshed)
 
         if refreshed is None:
@@ -238,14 +245,16 @@ class ADDONRELOADER_OT_open_addon_folder(bpy.types.Operator):
 
         try:
             selected_item_full_path = dm.addons_paths[selected_idname]
-            selected_item_path = selected_item_full_path.replace(
-                "__init__.py", "")
+            selected_item_path = os.path.dirname(selected_item_full_path)
 
             # 检查操作系统类型
             if os.name == "nt":  # Windows
                 os.startfile(selected_item_path)
             elif os.name == "posix":  # macOS or Linux
-                subprocess.call(("open", path))
+                if sys.platform == "darwin":
+                    subprocess.Popen(("open", selected_item_path))
+                else:
+                    subprocess.Popen(("xdg-open", selected_item_path))
 
             log.debug(f"打开文件夹: {dm.last_selected[1]}")
             self.report({"INFO"}, f"[ {dm.last_selected[1]} ] Folder Opened!")
@@ -290,14 +299,14 @@ class ADDONRELOADER_OT_enable_or_disable_addon(bpy.types.Operator):
                     log.info("[%s] 启用成功!", last_selected[1])
                     self.report(
                         {"INFO"}, f"[{last_selected[1]}] Enabled!")
-                    context.window_manager.addonreloader.addon_state = True
-                    utils.refresh_addon_list()  # 刷新以更新状态显示
+                    utils.refresh_addon_list(force=True)
+                    utils.sync_addon_state(context)
                     return {"FINISHED"}
 
                 log.info("[%s] 启用失败!", last_selected[1])
                 self.report(
                     {"WARNING"}, f"[{last_selected[1]}] Enable Failed!")
-                context.window_manager.addonreloader.addon_state = False
+                utils.sync_addon_state(context)
                 return {"CANCELLED"}
 
             # 禁用项
@@ -305,14 +314,14 @@ class ADDONRELOADER_OT_enable_or_disable_addon(bpy.types.Operator):
             if disabled is None:
                 log.info("[%s] 禁用成功!", last_selected[1])
                 self.report({"INFO"}, f"[{last_selected[1]}] Disabled!")
-                context.window_manager.addonreloader.addon_state = False
-                utils.refresh_addon_list()  # 刷新以更新状态显示
+                utils.refresh_addon_list(force=True)
+                utils.sync_addon_state(context)
                 return {"FINISHED"}
 
             log.info("[%s] 禁用失败!", last_selected[1])
             self.report(
                 {"ERROR"}, f"[{last_selected[1]}] Disable Failed!")
-            context.window_manager.addonreloader.addon_state = True
+            utils.sync_addon_state(context)
             return {"CANCELLED"}
 
         except Exception as e:

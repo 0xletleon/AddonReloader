@@ -34,6 +34,8 @@ class DataManager:
         # 插件路径映射表
         self.addons_paths = {}
 
+        self.enabled_map = {}
+
 
 dm = DataManager()
 """数据管理器单例实例"""

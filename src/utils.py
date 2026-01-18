@@ -1,9 +1,14 @@
 # utils.py
 import addon_utils
 import bpy
+import time
 
 from .data_manager import dm
 from .log import log
+
+
+_LAST_REFRESH_TS: float = 0.0
+_MIN_REFRESH_INTERVAL_S: float = 0.75
 
 
 def get_my_module_names(package_name):
@@ -26,9 +31,30 @@ def is_addon_enabled(addon_name: str) -> bool:
     return addon_utils.check(addon_name)[1]
 
 
-def refresh_addon_list() -> None:
+def sync_addon_state(context: bpy.types.Context) -> None:
+    try:
+        selected_idname = dm.last_selected[0]
+        if selected_idname == "no_addons":
+            desired = False
+        else:
+            desired = dm.enabled_map.get(selected_idname)
+            if desired is None:
+                desired = is_addon_enabled(selected_idname)
+        group = context.window_manager.addonreloader
+        if group.addon_state != desired:
+            group.addon_state = desired
+    except Exception:
+        return
+
+
+def refresh_addon_list(force: bool = False) -> None:
     """刷新插件列表"""
     log.debug("Refresh List")
+    global _LAST_REFRESH_TS
+    now = time.monotonic()
+    if not force and now - _LAST_REFRESH_TS < _MIN_REFRESH_INTERVAL_S:
+        return
+    _LAST_REFRESH_TS = now
 
     # 插件列表
     addons_list = []
@@ -41,6 +67,8 @@ def refresh_addon_list() -> None:
 
     # 检查上次选择的插件是否仍在列表中
     last_in_list = False
+    dm.addons_paths = {}
+    dm.enabled_map = {}
 
     for addon in all_addons:
         # 模块名称
@@ -53,15 +81,13 @@ def refresh_addon_list() -> None:
         bl_addon_version = this_bl_info.get("version", "0.0.0")
         bl_addon_name = this_bl_info.get("name", "Unknown Name")
 
-        # 检查插件是否启用
-        is_enabled = is_addon_enabled(module_name)
+        check_res = addon_utils.check(module_name)
+        is_enabled = check_res[1]
+        dm.enabled_map[module_name] = is_enabled
         enabled_status = " [Enabled]" if is_enabled else " [Disabled]"
         state_icon = "COLORSET_03_VEC" if is_enabled else "COLORSET_02_VEC"
 
-        bl_addon_description = f"Version: {bl_addon_version}{enabled_status}\n"
-        bl_addon_description += this_bl_info.get(
-            "description", "No description available"
-        )
+        bl_addon_description = f"Version: {bl_addon_version}{enabled_status}"
 
         # 检查是否为上次选择的插件
         if not last_in_list:
@@ -142,17 +168,9 @@ def refresh_addon_list() -> None:
                 "No addon/extension selected, updating to: %s",
                 dm.last_selected[1],
             )
-            # 更新插件状态
-            now_addon_state = is_addon_enabled(addons_list[0][0])
-            addon_state = bpy.context.window_manager.addonreloader.addon_state
-            log.debug(
-                f"Now State: {now_addon_state} | Addon State: {addon_state}"
-            )
-            if addon_state != now_addon_state:
-                log.debug("Addon State != Now State")
-                bpy.context.window_manager.addonreloader.addon_state = now_addon_state
 
-    log.info("Re-refresh List")
+    log.debug("Re-refresh List")
+    sync_addon_state(bpy.context)
 
 
 def check_blender_ready():
@@ -169,7 +187,7 @@ def check_blender_ready():
         ):
             log.debug("Blender Ready")
             # Blender 已就绪 刷新插件列表
-            refresh_addon_list()
+            refresh_addon_list(force=True)
 
             # 停止定时器
             return None
