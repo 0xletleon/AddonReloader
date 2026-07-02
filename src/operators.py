@@ -1,9 +1,9 @@
 # operators.py
 import importlib
 import os
+import platform
 import subprocess
 import sys
-import traceback
 from typing import List, Optional, Set, Tuple
 
 import addon_utils
@@ -28,7 +28,7 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
     def execute(self, context: bpy.types.Context) -> Set[str]:
         """Execute reload"""
         target_item = dm.last_selected
-        log.debug("Reload: %s", target_item[1])
+        log.debug("Reloading: %s", target_item[1])
 
         try:
             my_addon = dm.my_addon_names.get("Addon")
@@ -47,16 +47,31 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                 utils.refresh_addon_list(force=True)
                 utils.sync_addon_state(context)
                 log.info("%s reloaded", target_item[1])
-                self.report({"INFO"}, f"{target_item[1]} Reloaded!")
+                if was_enabled:
+                    self.report({"INFO"}, f"{target_item[1]} Reloaded!")
+                else:
+                    self.report({"INFO"}, f"{target_item[1]} Reloaded (not enabled)!")
                 return {"FINISHED"}
 
-            self.report({"ERROR"}, f"{target_item[1]} Reload Failed!")
+            self.report({"WARNING"}, f"{target_item[1]} Reload Failed!")
             return {"CANCELLED"}
 
         except Exception as e:
             log.error("Reload failed: %s", str(e))
             self.report({"ERROR"}, f"Error: {str(e)}")
             return {"CANCELLED"}
+
+    def _clear_module_cache(self, root_module_name: str) -> None:
+        """Remove module and its submodules from sys.modules cache"""
+        prefix = root_module_name + "."
+        modules_to_remove = [
+            name for name in list(sys.modules)
+            if name == root_module_name or name.startswith(prefix)
+        ]
+        for name in modules_to_remove:
+            del sys.modules[name]
+
+        importlib.invalidate_caches()
 
     def _reload_modules(self, context: bpy.types.Context, module_name: str, was_enabled: bool) -> bool:
         """Reload addon and all related modules"""
@@ -75,51 +90,33 @@ class ADDONRELOADER_OT_reload_addon(bpy.types.Operator):
                 log.error("Module not found: %s", root_module_name)
                 return False
 
-            # Disable module
-            addon_utils.disable(root_module_name)
-
-            # Manually unregister all classes
-            if hasattr(target_module, "classes"):
-                for cls in reversed(target_module.classes):
-                    try:
-                        bpy.utils.unregister_class(cls)
-                    except Exception:
-                        pass
-
-            # Call module's unregister function
-            if hasattr(target_module, "unregister"):
-                try:
-                    target_module.unregister()
-                except Exception as e:
-                    log.warning("Unregister failed: %s", str(e))
-
-            # Remove all related modules from sys.modules
-            modules_to_remove: List[str] = [
-                name for name in sys.modules
-                if name == root_module_name or name.startswith(f"{root_module_name}.")
-            ]
-
-            for name in modules_to_remove:
-                del sys.modules[name]
-
-            # Clear importlib cache
-            importlib.invalidate_caches()
-
-            # Re-enable module if it was enabled
             if was_enabled:
+                # --- Enabled: disable → clear cache → re-enable ---
+                # addon_utils.disable() already calls module's unregister()
+                addon_utils.disable(root_module_name)
+
+                # Clear cached modules to force fresh import from disk
+                self._clear_module_cache(root_module_name)
+
                 try:
                     result = addon_utils.enable(root_module_name, default_set=True)
                     if result is not None:
                         return True
-
                     log.error("Re-enable failed: %s", root_module_name)
                     return False
-
                 except Exception as e:
                     log.error("Enable failed: %s, %s", root_module_name, str(e))
                     return False
+            else:
+                # --- Disabled: clear cache → import check (no enable) ---
+                self._clear_module_cache(root_module_name)
 
-            return True
+                try:
+                    importlib.import_module(root_module_name)
+                    return True
+                except Exception as e:
+                    log.error("Import failed: %s, %s", root_module_name, str(e))
+                    return False
 
         except Exception as e:
             log.error("Reload error: %s, %s", root_module_name, str(e))
@@ -221,7 +218,7 @@ class ADDONRELOADER_OT_open_addon_folder(bpy.types.Operator):
             if os.name == "nt":  # Windows
                 os.startfile(selected_item_path)
             elif os.name == "posix":  # macOS or Linux
-                if sys.platform == "darwin":
+                if platform.system() == "Darwin":
                     subprocess.Popen(("open", selected_item_path))
                 else:
                     subprocess.Popen(("xdg-open", selected_item_path))

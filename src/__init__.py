@@ -2,7 +2,6 @@
 import bpy
 
 from . import ui, operators, utils
-from .log import log, set_log_level
 
 
 # Addon property group
@@ -20,19 +19,6 @@ class AddonReloaderPreferences(bpy.types.AddonPreferences):
     """Addon Preferences"""
     bl_idname = __package__
 
-    log_level: bpy.props.EnumProperty(
-        name="Log Level",
-        description="Set the logging level",
-        items=[
-            ("DEBUG", "Debug", "Show all messages", 0),
-            ("INFO", "Info", "Show informational messages", 1),
-            ("WARNING", "Warning", "Show warnings and errors", 2),
-            ("ERROR", "Error", "Show errors only", 3),
-        ],
-        default="INFO",
-        update=lambda self, context: set_log_level(self.log_level),
-    )  # type: ignore
-
     last_selected_addon: bpy.props.StringProperty(
         name="Last Selected",
         description="Remember the last selected addon module name across sessions",
@@ -42,17 +28,12 @@ class AddonReloaderPreferences(bpy.types.AddonPreferences):
 
     last_selected_name: bpy.props.StringProperty(
         name="Last Selected",
-        description="Display name of the last selected addon",
+        description="",
         default="",
     )  # type: ignore
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text="Addon Reloader Settings", icon="PLUGIN")
-
-        # Log level
-        row = layout.row()
-        row.prop(self, "log_level")
 
         # Last selected addon (read-only)
         row = layout.row()
@@ -91,12 +72,6 @@ def register():
 
     # Register timer to refresh addon list after Blender is ready
     bpy.app.timers.register(utils.check_blender_ready)
-
-    # Load preferences
-    prefs = bpy.context.preferences.addons.get(__package__)
-    if prefs and prefs.preferences:
-        # Load log level
-        set_log_level(prefs.preferences.log_level)
 
 
 def unregister():

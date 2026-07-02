@@ -9,48 +9,50 @@ def draw_topbar_menu(self, context) -> None:
     alignment = context.region.alignment
 
     # Only draw in the right-side region
-    if alignment == "RIGHT":
-        wm = context.window_manager
-        layout = self.layout
+    if alignment != "RIGHT":
+        return
 
-        # Create a row layout
-        row = layout.row(align=True)
+    wm = context.window_manager
+    layout = self.layout
 
-        # Addon selection dropdown
-        row.operator("addonreloader.dropdown_list",
-                     text="", icon="DOWNARROW_HLT")
+    # Create a row layout
+    row = layout.row(align=True)
 
-        # Reload button
-        if dm.last_selected[0] != "no_addons":  # If an addon is selected
-            # Set icon based on addon enabled state
-            is_enabled = wm.addonreloader.addon_state
-            icon = "NODE_SOCKET_SHADER" if is_enabled else "RECORD_ON"
+    # Addon selection dropdown
+    row.operator("addonreloader.dropdown_list",
+                 text="", icon="DOWNARROW_HLT")
 
-            # Add enable/disable button
-            row.operator("addonreloader.enable_or_disable_addon",
-                         text="", icon=icon)
+    # Reload button
+    if dm.last_selected[0] != "no_addons":  # If an addon is selected
+        # Set icon based on addon enabled state
+        is_enabled = wm.addonreloader.addon_state
+        icon = "NODE_SOCKET_SHADER" if is_enabled else "RECORD_ON"
 
-            # Strip type prefix for display
-            display_name = dm.last_selected[1].split(") ", 1)[-1]
-            # Truncate addon name to 20 characters
-            shortened_name = display_name[:20]
-            if len(display_name) > 20:
-                shortened_name += "..."
-            # Add reload button (fixed width via sub-row)
-            sub = row.row(align=True)
-            sub.ui_units_x = 5
-            sub.operator("addonreloader.reload_addon", text=shortened_name)
-        else:  # No addon selected
-            # Disabled-state button
-            row.operator(
-                "addonreloader.enable_or_disable_addon", text="", icon="COLORSET_02_VEC"
-            )
-            # Add reload button (fixed width via sub-row)
-            sub = row.row(align=True)
-            sub.ui_units_x = 5
-            sub.operator("addonreloader.reload_addon",
-                         text=dm.last_selected[1])
+        # Add enable/disable toggle button
+        row.operator("addonreloader.enable_or_disable_addon",
+                     text="", icon=icon)
 
-        # Open addon folder button
-        row.operator("addonreloader.open_addon_folder",
-                     text="", icon="FILE_FOLDER")
+        # Strip type prefix for display
+        display_name = dm.last_selected[1].split(") ", 1)[-1]
+        # Truncate addon name to 20 characters
+        shortened_name = display_name[:20]
+        if len(display_name) > 20:
+            shortened_name += "..."
+        # Add reload button (fixed width via sub-row)
+        sub = row.row(align=True)
+        sub.ui_units_x = 5
+        sub.operator("addonreloader.reload_addon", text=shortened_name)
+    else:  # No addon selected
+        # Disabled-state button
+        row.operator(
+            "addonreloader.enable_or_disable_addon", text="", icon="COLORSET_02_VEC"
+        )
+        # Add reload button (fixed width via sub-row)
+        sub = row.row(align=True)
+        sub.ui_units_x = 5
+        sub.operator("addonreloader.reload_addon",
+                     text=dm.last_selected[1])
+
+    # Open addon folder button
+    row.operator("addonreloader.open_addon_folder",
+                 text="", icon="FILE_FOLDER")

@@ -2,15 +2,6 @@
 import logging
 
 
-# Log level mapping
-LOG_LEVELS = {
-    "DEBUG": logging.DEBUG,
-    "INFO": logging.INFO,
-    "WARNING": logging.WARNING,
-    "ERROR": logging.ERROR,
-}
-
-
 class _ShortLevelFormatter(logging.Formatter):
     """Formatter with short level names."""
 
@@ -29,11 +20,11 @@ class _ShortLevelFormatter(logging.Formatter):
                 delattr(record, "levelname_short")
 
 
-def setup_logger(level: int = logging.INFO) -> logging.Logger:
+def setup_logger(level: int = logging.DEBUG) -> logging.Logger:
     """Configure the logger.
 
     Args:
-        level: Log level, defaults to INFO.
+        level: Log level, defaults to DEBUG.
     """
     logger = logging.getLogger("RA")
     if not logger.hasHandlers():
@@ -44,16 +35,6 @@ def setup_logger(level: int = logging.INFO) -> logging.Logger:
     else:
         logger.setLevel(level)
     return logger
-
-
-def set_log_level(level_name: str) -> None:
-    """Set the log level.
-
-    Args:
-        level_name: Log level name (DEBUG/INFO/WARNING/ERROR).
-    """
-    level = LOG_LEVELS.get(level_name, logging.INFO)
-    log.setLevel(level)
 
 
 log: logging.Logger = setup_logger(logging.DEBUG)
