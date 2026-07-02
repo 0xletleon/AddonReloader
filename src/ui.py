@@ -3,48 +3,48 @@ from .data_manager import dm
 
 
 def draw_topbar_menu(self, context) -> None:
-    """在顶部菜单栏绘制插件界面"""
-    # 获取当前区域对齐方式
+    """Draw the addon UI in the top menu bar."""
+    # Get current region alignment
     # https://www.cnblogs.com/letleon/p/18991793
     alignment = context.region.alignment
 
-    # 只在右侧区域绘制
+    # Only draw in the right-side region
     if alignment == "RIGHT":
         wm = context.window_manager
         layout = self.layout
 
-        # 创建一行布局
+        # Create a row layout
         row = layout.row(align=True)
 
-        # 📜 插件选择列表
+        # Addon selection dropdown
         row.operator("addonreloader.dropdown_list",
                      text="", icon="DOWNARROW_HLT")
 
-        # ✨ 重新载入按钮
-        if dm.last_selected[0] != "no_addons":  # 如果有选择的插件
-            # 根据插件启用状态设置图标
+        # Reload button
+        if dm.last_selected[0] != "no_addons":  # If an addon is selected
+            # Set icon based on addon enabled state
             is_enabled = wm.addonreloader.addon_state
-            icon = "COLORSET_03_VEC" if is_enabled else "COLORSET_02_VEC"
+            icon = "NODE_SOCKET_SHADER" if is_enabled else "RECORD_ON"
 
-            # 添加启用/禁用按钮
+            # Add enable/disable button
             row.operator("addonreloader.enable_or_disable_addon",
                          text="", icon=icon)
 
-            # 将插件名称限制在20个字符以内
+            # Truncate addon name to 20 characters
             shortened_name = dm.last_selected[1][:20]
             if len(dm.last_selected[1]) > 20:
                 shortened_name += "..."
-            # 添加重载按钮
+            # Add reload button
             row.operator("addonreloader.reload_addon", text=shortened_name)
-        else:  # 如果没有选择的插件
-            # 禁用状态的按钮
+        else:  # No addon selected
+            # Disabled-state button
             row.operator(
                 "addonreloader.enable_or_disable_addon", text="", icon="COLORSET_02_VEC"
             )
-            # 添加重载按钮（无选择时显示默认文本）
+            # Add reload button (shows default text when nothing is selected)
             row.operator("addonreloader.reload_addon",
                          text=dm.last_selected[1])
 
-        # 📂 打开插件目录按钮
+        # Open addon folder button
         row.operator("addonreloader.open_addon_folder",
                      text="", icon="FILE_FOLDER")

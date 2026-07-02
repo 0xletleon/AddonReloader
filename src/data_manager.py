@@ -1,41 +1,30 @@
 # data_manager.py
 
 
-def singleton(cls):
-    """单例模式装饰器"""
-    instances = {}
-
-    def get_instance(*args, **kwargs):
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
-
-    return get_instance
-
-
-@singleton
 class DataManager:
-    """插件数据管理器"""
+    """Addon data manager."""
 
     def __init__(self):
-        # 当前插件的模块名称
+        # Current addon module names
         self.my_addon_names = {"Addon": "", "Extend": ""}
 
-        # 下拉菜单默认值
+        # Default dropdown menu value
         self.ddmenu_default_val = [
             ("no_addons", "None", "", "COLORSET_02_VEC", 1)]
 
-        # 上次选择的插件
+        # Last selected addon
         self.last_selected = self.ddmenu_default_val[0]
 
-        # 要显示的插件列表
+        # Addon list to display
         self.show_lists = []
 
-        # 插件路径映射表
+        # Addon path mapping
         self.addons_paths = {}
 
+        # Addon enabled-state mapping
         self.enabled_map = {}
 
 
+# Module-level singleton instance (Python modules load once, naturally singleton)
 dm = DataManager()
-"""数据管理器单例实例"""
+"""Singleton instance of DataManager."""
