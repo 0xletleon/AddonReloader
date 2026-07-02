@@ -30,19 +30,25 @@ def draw_topbar_menu(self, context) -> None:
             row.operator("addonreloader.enable_or_disable_addon",
                          text="", icon=icon)
 
+            # Strip type prefix for display
+            display_name = dm.last_selected[1].split(") ", 1)[-1]
             # Truncate addon name to 20 characters
-            shortened_name = dm.last_selected[1][:20]
-            if len(dm.last_selected[1]) > 20:
+            shortened_name = display_name[:20]
+            if len(display_name) > 20:
                 shortened_name += "..."
-            # Add reload button
-            row.operator("addonreloader.reload_addon", text=shortened_name)
+            # Add reload button (fixed width via sub-row)
+            sub = row.row(align=True)
+            sub.ui_units_x = 5
+            sub.operator("addonreloader.reload_addon", text=shortened_name)
         else:  # No addon selected
             # Disabled-state button
             row.operator(
                 "addonreloader.enable_or_disable_addon", text="", icon="COLORSET_02_VEC"
             )
-            # Add reload button (shows default text when nothing is selected)
-            row.operator("addonreloader.reload_addon",
+            # Add reload button (fixed width via sub-row)
+            sub = row.row(align=True)
+            sub.ui_units_x = 5
+            sub.operator("addonreloader.reload_addon",
                          text=dm.last_selected[1])
 
         # Open addon folder button

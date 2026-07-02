@@ -91,8 +91,8 @@ def refresh_addon_list(force: bool = False) -> None:
     # Target idname to restore after refresh
     target_idname = dm.last_selected[0]
 
-    # Addon list
-    addons_list = []
+    # Raw addon data: (module_name, bl_addon_name, addon_type, state_icon)
+    raw_addons = []
 
     # Get all addons
     all_addons = addon_utils.modules()
@@ -138,15 +138,8 @@ def refresh_addon_list(force: bool = False) -> None:
             ):
                 continue
 
-            # Add to extension list
-            addon_entry = (
-                module_name,
-                f"[E] {bl_addon_name}",
-                "",
-                state_icon,
-                len(addons_list),
-            )
-            addons_list.append(addon_entry)
+            # Add to raw list (store raw name for sorting)
+            raw_addons.append((module_name, bl_addon_name, "E", state_icon))
 
             # Add to addon paths
             dm.addons_paths[module_name] = module_file
@@ -159,18 +152,20 @@ def refresh_addon_list(force: bool = False) -> None:
             if "addons_core" in module_file:
                 continue
 
-            # Add to addon list
-            addon_entry = (
-                module_name,
-                f"[A] {bl_addon_name}",
-                "",
-                state_icon,
-                len(addons_list),
-            )
-            addons_list.append(addon_entry)
+            # Add to raw list (store raw name for sorting)
+            raw_addons.append((module_name, bl_addon_name, "A", state_icon))
 
             # Add to addon paths
             dm.addons_paths[module_name] = module_file
+
+    # Sort by addon name (A-Z, case-insensitive)
+    raw_addons.sort(key=lambda e: e[1].lower())
+
+    # Build enum items: (identifier, display_name, description, icon, index)
+    addons_list = [
+        (mod, f"({typ}) {name}", "", icon, i)
+        for i, (mod, name, typ, icon) in enumerate(raw_addons)
+    ]
 
     # Set default if list is empty
     if not addons_list:
